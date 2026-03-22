@@ -79,7 +79,7 @@
         (do
           (println (str "The " (:desc obj) " contains:"))
           (doseq [[_ o] contents]
-            (println (str "  A " (:desc o) "."))))))))
+            (println (str "  A " (:desc o)))))))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-EXAMINE — ZIL: ROUTINE V-EXAMINE
