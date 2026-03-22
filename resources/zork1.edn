@@ -1,0 +1,34 @@
+{:rooms
+ {:west-of-house
+  {:desc    "West of House"
+   :exits   {:north :north-of-house
+             :ne    :north-of-house
+             :south :south-of-house
+             :se    :south-of-house
+             :west  :forest-1
+             :east  "The door is boarded and you can't remove the boards."
+             :sw    {:to :stone-barrow :if :won-flag}
+             :in    {:to :stone-barrow :if :won-flag}}
+   :action  :west-house
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:white-house :board :forest}}}
+
+ :objects
+ {:mailbox
+  {:location   :west-of-house
+   :synonyms   #{:mailbox :box}
+   :adjectives #{:small}
+   :desc       "small mailbox"
+   :flags      #{:contbit :trytakebit}
+   :capacity   10
+   :action     :mailbox-f}
+
+  :advertisement
+  {:location   :mailbox
+   :synonyms   #{:advertisement :leaflet :booklet :mail}
+   :adjectives #{:small}
+   :desc       "leaflet"
+   :flags      #{:readbit :takebit :burnbit}
+   :ldesc      "A small leaflet is on the ground."
+   :text       "\"WELCOME TO ZORK!\n\nZORK is a game of adventure, danger, and low cunning. In it you will explore some of the most amazing territory ever seen by mortals. No computer should be without one!\""
+   :size       2}}}
