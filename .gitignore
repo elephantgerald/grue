@@ -1,0 +1,16 @@
+# Clojure
+.cpcache/
+.clj-kondo/
+.lsp/
+target/
+classes/
+pom.xml
+
+# Editor
+.calva/
+.nrepl-port
+*.orig
+
+# OS
+.DS_Store
+Thumbs.db
