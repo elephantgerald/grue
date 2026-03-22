@@ -18,11 +18,15 @@
     :read    (if obj
                (actions/v-read obj)
                (println "What do you want to read?"))
-    :go      (if dir
-               (actions/v-walk dir)
-               (println "Which direction?"))
-    :quit    (do (println "Your score is 0. Goodbye.") :quit)
-    :unknown (println (str "I don't understand that."))))
+    :take      (if obj
+                 (actions/v-take obj)
+                 (println "What do you want to take?"))
+    :inventory (actions/v-inventory)
+    :go        (if dir
+                 (actions/v-walk dir)
+                 (println "Which direction?"))
+    :quit      (do (println "Your score is 0. Goodbye.") :quit)
+    :unknown   (println "I don't understand that.")))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Main game loop — mirrors MAIN-LOOP in GMAIN.ZIL

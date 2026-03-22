@@ -21,15 +21,18 @@
    "out"   :out})
 
 (def verbs
-  {"look"    :look    "l"       :look
-   "stare"   :look    "gaze"    :look
-   "examine" :examine "x"       :examine
-   "describe":examine "what"    :examine
-   "open"    :open
-   "read"    :read    "skim"    :read
-   "go"      :go      "walk"    :go
-   "run"     :go      "proceed" :go    "step" :go
-   "quit"    :quit    "q"       :quit})
+  {"look"      :look    "l"         :look
+   "stare"     :look    "gaze"      :look
+   "examine"   :examine "x"         :examine
+   "describe"  :examine "what"      :examine
+   "open"      :open
+   "read"      :read    "skim"      :read
+   "take"      :take    "get"       :take
+   "pick"      :take    "carry"     :take
+   "inventory" :inventory "i"       :inventory
+   "go"        :go      "walk"      :go
+   "run"       :go      "proceed"   :go    "step" :go
+   "quit"      :quit    "q"         :quit})
 
 ;;; ---------------------------------------------------------------------------
 ;;; Object lookup — find an object key by word, searching :synonyms
@@ -62,6 +65,10 @@
           ;; go + direction: "go north"
           (and (= verb :go) (directions next-word))
           {:verb :go :dir (directions next-word)}
+
+          ;; look + object word → examine
+          (and (= verb :look) next-word)
+          {:verb :examine :obj (find-object next-word)}
 
           ;; verb + object word
           next-word

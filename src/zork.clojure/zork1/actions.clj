@@ -141,7 +141,7 @@
       (println (str "How does one read a " (:desc obj) "?")))))
 
 ;;; ---------------------------------------------------------------------------
-;;; V-LOOK — ZIL: ROUTINE V-LOOK
+;;; V-LOOK — ZIL: ROUTINE V-LOOK + DESCRIBE-OBJECTS
 ;;; ---------------------------------------------------------------------------
 
 (defn v-look []
@@ -149,8 +149,48 @@
     (println (:desc room))
     (room-action (:action room) :m-look)
     (doseq [[_ obj] (objects-in @here)]
-      (when-let [ldesc (:ldesc obj)]
-        (println ldesc)))))
+      (cond
+        (:ldesc obj)                (println (:ldesc obj))
+        (not (flag? obj :ndescbit)) (println (str "There is a " (:desc obj) " here."))))))
+
+;;; ---------------------------------------------------------------------------
+;;; V-TAKE — ZIL: ROUTINE V-TAKE + ITAKE
+;;; TRYTAKEBIT: call action handler first — if :m-handled, stop.
+;;; TAKEBIT:    move to player inventory (:winner).
+;;; ---------------------------------------------------------------------------
+
+(defn v-take [obj-key]
+  (let [obj (get-object obj-key)]
+    (cond
+      ;; already carrying it
+      (= (:location obj) :winner)
+      (println "You already have that.")
+
+      ;; TRYTAKEBIT — give the object a chance to block it
+      (and (flag? obj :trytakebit)
+           (= :m-handled (object-action obj-key :take)))
+      nil
+
+      ;; TAKEBIT — take it
+      (flag? obj :takebit)
+      (do (swap! world assoc-in [:objects obj-key :location] :winner)
+          (println "Taken."))
+
+      :else
+      (println "You can't take that."))))
+
+;;; ---------------------------------------------------------------------------
+;;; V-INVENTORY — ZIL: ROUTINE V-INVENTORY
+;;; ---------------------------------------------------------------------------
+
+(defn v-inventory []
+  (let [carrying (seq (objects-in :winner))]
+    (if-not carrying
+      (println "You are empty-handed.")
+      (do
+        (println "You are carrying:")
+        (doseq [[_ obj] carrying]
+          (println (str "  A " (:desc obj))))))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-WALK — ZIL: ROUTINE V-WALK
