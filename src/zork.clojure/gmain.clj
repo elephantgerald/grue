@@ -6,7 +6,7 @@
 ;;; Verb dispatch — mirrors PERFORM in GMAIN.ZIL
 ;;; ---------------------------------------------------------------------------
 
-(defn perform [{:keys [verb obj dir]}]
+(defn perform [{:keys [verb obj dir] :as cmd}]
   (case verb
     :look    (if obj
                (println "That sentence isn't one I recognize.")
@@ -23,9 +23,15 @@
     :read    (if obj
                (actions/v-read obj)
                (println "What do you want to read?"))
-    :take      (if obj
-                 (actions/v-take obj)
-                 (println "What do you want to take?"))
+    :take  (if obj
+             (actions/v-take obj)
+             (println "What do you want to take?"))
+    :put   (if (and obj (:container cmd))
+             (actions/v-put obj (:container cmd))
+             (println "What do you want to put where?"))
+    :close (if obj
+             (actions/v-close obj)
+             (println "What do you want to close?"))
     :inventory (actions/v-inventory)
     :go        (if dir
                  (actions/v-walk dir)

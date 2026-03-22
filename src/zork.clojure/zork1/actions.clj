@@ -154,6 +154,51 @@
         (not (flag? obj :ndescbit)) (println (str "There is a " (:desc obj) " here."))))))
 
 ;;; ---------------------------------------------------------------------------
+;;; V-CLOSE — ZIL: ROUTINE V-CLOSE
+;;; ---------------------------------------------------------------------------
+
+(defn v-close [obj-key]
+  (let [obj (get-object obj-key)]
+    (cond
+      (not (or (flag? obj :contbit)
+               (flag? obj :doorbit)))
+      (println (str "You must tell me how to do that to a " (:desc obj) "."))
+
+      (not (flag? obj :openbit))
+      (println "It is already closed.")
+
+      :else
+      (do
+        (swap! world update-in [:objects obj-key :flags] disj :openbit)
+        (println "Closed.")))))
+
+;;; ---------------------------------------------------------------------------
+;;; V-PUT — ZIL: ROUTINE V-PUT
+;;; Move prso into prsi (a container), checking open and capacity.
+;;; ---------------------------------------------------------------------------
+
+(defn v-put [obj-key container-key]
+  (let [obj       (get-object obj-key)
+        container (get-object container-key)]
+    (cond
+      (nil? container)
+      (println "I don't know what you mean.")
+
+      (not (= (:location obj) :winner))
+      (println "You're not holding that.")
+
+      (not (flag? container :contbit))
+      (println (str "You can't put anything in the " (:desc container) "."))
+
+      (not (flag? container :openbit))
+      (println (str "The " (:desc container) " is closed."))
+
+      :else
+      (do
+        (swap! world assoc-in [:objects obj-key :location] container-key)
+        (println "Done.")))))
+
+;;; ---------------------------------------------------------------------------
 ;;; V-TAKE — ZIL: ROUTINE V-TAKE + ITAKE
 ;;; TRYTAKEBIT: call action handler first — if :m-handled, stop.
 ;;; TAKEBIT:    move to player inventory (:winner).

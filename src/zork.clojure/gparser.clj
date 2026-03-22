@@ -20,6 +20,8 @@
    "in"    :in
    "out"   :out})
 
+(def prepositions #{"in" "into" "inside" "on" "onto"})
+
 (def verbs
   {"look"      :look    "l"         :look
    "stare"     :look    "gaze"      :look
@@ -29,6 +31,9 @@
    "read"      :read    "skim"      :read
    "take"      :take    "get"       :take
    "pick"      :take    "carry"     :take
+   "put"       :put     "place"     :put    "insert" :put
+   "drop"      :drop
+   "close"     :close   "shut"      :close
    "inventory" :inventory "i"       :inventory
    "go"        :go      "walk"      :go
    "run"       :go      "proceed"   :go    "step" :go
@@ -78,6 +83,12 @@
           ;; look with no object or unrecognised extra words
           (= verb :look)
           {:verb :look :obj (when next-word :unrecognised)}
+
+          ;; put/drop X in Y  — two-object command
+          (and next-word obj-word (prepositions obj-word))
+          {:verb verb
+           :obj  (find-object next-word)
+           :container (find-object (nth rest-words 2 nil))}
 
           ;; verb + object word
           next-word
