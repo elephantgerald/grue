@@ -80,9 +80,13 @@
           (and (= verb :look) (#{"in" "inside"} next-word) obj-word)
           {:verb :look-in :obj (find-object obj-word)}
 
-          ;; look with no object or unrecognised extra words
+          ;; look with unrecognised extra words
+          (and (= verb :look) next-word)
+          {:verb :look :obj :unrecognised}
+
+          ;; bare look
           (= verb :look)
-          {:verb :look :obj (when next-word :unrecognised)}
+          {:verb :look}
 
           ;; put/drop X in Y  — two-object command
           (and next-word obj-word (prepositions obj-word))
