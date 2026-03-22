@@ -75,7 +75,7 @@
     (if-not (flag? obj :openbit)
       (println (str "The " (:desc obj) " is closed."))
       (if (empty? contents)
-        (println "It is empty.")
+        (println (str "The " (:desc obj) " is empty."))
         (do
           (println (str "The " (:desc obj) " contains:"))
           (doseq [[_ o] contents]

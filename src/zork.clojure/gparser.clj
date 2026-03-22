@@ -59,18 +59,31 @@
 
       ;; known verb
       (verbs first-word)
-      (let [verb (verbs first-word)
-            next-word (first rest-words)]
+      (let [verb      (verbs first-word)
+            next-word (first rest-words)
+            obj-word  (second rest-words)]
         (cond
           ;; go + direction: "go north"
           (and (= verb :go) (directions next-word))
           {:verb :go :dir (directions next-word)}
 
+          ;; look at OBJECT → examine
+          (and (= verb :look) (= next-word "at") obj-word)
+          {:verb :examine :obj (find-object obj-word)}
+
+          ;; look in/inside OBJECT → look-in
+          (and (= verb :look) (#{"in" "inside"} next-word) obj-word)
+          {:verb :look-in :obj (find-object obj-word)}
+
+          ;; look with no object or unrecognised extra words
+          (= verb :look)
+          {:verb :look :obj (when next-word :unrecognised)}
+
           ;; verb + object word
           next-word
           {:verb verb :obj (find-object next-word)}
 
-          ;; bare verb: "look", "quit"
+          ;; bare verb: "quit", "inventory"
           :else
           {:verb verb}))
 

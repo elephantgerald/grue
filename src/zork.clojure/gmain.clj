@@ -14,6 +14,9 @@
     :examine (if obj
                (actions/v-examine obj)
                (println "What do you want to examine?"))
+    :look-in (if obj
+               (actions/v-look-inside obj)
+               (println "What do you want to look in?"))
     :open    (if obj
                (actions/v-open obj)
                (println "What do you want to open?"))
