@@ -8,7 +8,9 @@
 
 (defn perform [{:keys [verb obj dir]}]
   (case verb
-    :look    (actions/v-look)
+    :look    (if obj
+               (println "That sentence isn't one I recognize.")
+               (actions/v-look))
     :examine (if obj
                (actions/v-examine obj)
                (println "What do you want to examine?"))
@@ -35,7 +37,9 @@
 (defn game-loop []
   (actions/load-world!)
   (println "ZORK I: The Great Underground Empire")
-  (println "Copyright (c) 1981 Infocom, Inc.")
+  (println "Copyright (c) 1981, 1982, 1983 Infocom, Inc. All rights reserved.")
+  (println "ZORK is a registered trademark of Infocom, Inc.")
+  (println "Revision 88 / Serial number 840726")
   (println)
   (actions/v-look)
   (loop []

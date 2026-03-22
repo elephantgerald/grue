@@ -66,10 +66,6 @@
           (and (= verb :go) (directions next-word))
           {:verb :go :dir (directions next-word)}
 
-          ;; look + object word → examine
-          (and (= verb :look) next-word)
-          {:verb :examine :obj (find-object next-word)}
-
           ;; verb + object word
           next-word
           {:verb verb :obj (find-object next-word)}
