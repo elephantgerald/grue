@@ -50,3 +50,18 @@ The ZIL parser/action loop uses these globals:
 - The ZIL source in `src/zork.zil/` is reference only — do not modify it
 - The Clojure rewrite lives in `src/zork.clojure/`
 - Keep tests alongside the Clojure source as we build it out
+
+## On the Test Suite
+
+The integration test assertions in `tests/integration/` are not guesses or
+approximations — they are the exact output of the original Zork I binary
+(revision 88, serial 840726) verified by hand in DOSBox.
+
+**If a test fails, the code is wrong. The test is almost certainly not wrong.**
+
+Do not modify an integration test assertion to make it pass. Investigate why
+the code no longer produces the output the original game produces. The only
+legitimate reason to change an assertion is if you can demonstrate with a fresh
+DOSBox session that the original game's output differs from what the test
+expects — which would mean the test was transcribed incorrectly in the first
+place.

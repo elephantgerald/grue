@@ -45,8 +45,20 @@ clj
 ### Running tests
 
 ```bash
-# coming soon
+clj -M:test
 ```
+
+### A note on the test suite
+
+The integration test assertions are the exact output of the original Zork I
+binary (revision 88, serial 840726), verified by hand in DOSBox. They are the
+ground truth for this project.
+
+**If a test fails, the code is wrong. The tests are almost certainly not wrong.**
+
+Do not modify an assertion to make it pass. The only valid reason to change one
+is evidence from a fresh DOSBox session showing the assertion was transcribed
+incorrectly.
 
 ## License
 
