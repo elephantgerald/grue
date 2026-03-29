@@ -11,7 +11,56 @@
              :in    {:to :stone-barrow :if :won-flag}}
    :action  :west-house
    :flags   #{:rlandbit :onbit :sacredbit}
-   :globals #{:white-house :board :forest}}}
+   :globals #{:white-house :board :forest}}
+
+  :north-of-house
+  {:desc  "North of House"
+   :ldesc "You are facing the north side of a white house. There is no door here, and all the windows are boarded up. To the north a narrow path winds through the trees."
+   :exits {:sw    :west-of-house
+           :west  :west-of-house
+           :se    :east-of-house
+           :east  :east-of-house
+           :north :path
+           :south "The windows are all boarded."}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:boarded-window :board :white-house :forest}}
+
+  :south-of-house
+  {:desc  "South of House"
+   :ldesc "You are facing the south side of a white house. There is no door here, and all the windows are boarded."
+   :exits {:west  :west-of-house
+           :nw    :west-of-house
+           :east  :east-of-house
+           :ne    :east-of-house
+           :south :forest-3
+           :north "The windows are all boarded."}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:boarded-window :board :white-house :forest}}
+
+  :east-of-house
+  {:desc   "Behind House"
+   :action :east-house
+   :exits  {:north :north-of-house
+            :nw    :north-of-house
+            :south :south-of-house
+            :sw    :south-of-house
+            :east  :clearing
+            :west  {:to :kitchen :if-open :kitchen-window}
+            :in    {:to :kitchen :if-open :kitchen-window}}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:white-house :kitchen-window :forest}}
+
+  :forest-1
+  {:desc   "Forest"
+   :ldesc  "This is a forest, with trees in all directions. To the east, there appears to be sunlight."
+   :action :forest-room
+   :exits  {:north :grating-clearing
+            :east  :path
+            :south :forest-3
+            :up    "There is no tree here suitable for climbing."
+            :west  "You would need a machete to go further west."}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:tree :songbird :white-house :forest}}}
 
  :objects
  {:mailbox
@@ -31,4 +80,12 @@
    :flags      #{:readbit :takebit :burnbit}
    :ldesc      "A small leaflet is on the ground."
    :text       "\"WELCOME TO ZORK!\n\nZORK is a game of adventure, danger, and low cunning. In it you will explore some of the most amazing territory ever seen by mortals. No computer should be without one!\""
-   :size       2}}}
+   :size       2}
+
+  :kitchen-window
+  {:location   :local-globals
+   :synonyms   #{:window}
+   :adjectives #{:kitchen :small}
+   :desc       "kitchen window"
+   :flags      #{:doorbit :ndescbit}
+   :action     :kitchen-window-f}}}

@@ -46,6 +46,18 @@
   (when (= msg :m-look)
     (println "You are standing in an open field west of a white house, with a boarded front door.")))
 
+;;; EAST-HOUSE — description depends on whether kitchen window is open
+(defmethod room-action :east-house [_ msg]
+  (when (= msg :m-look)
+    (let [window (get-object :kitchen-window)]
+      (print "You are behind the white house. A path leads into the forest to the east. In one corner of the house there is a small window which is ")
+      (if (flag? window :openbit)
+        (println "open.")
+        (println "slightly ajar.")))))
+
+;;; FOREST-ROOM — M-LOOK handled by :ldesc on the room; handler is for climbing only
+(defmethod room-action :forest-room [_ _] nil)
+
 ;;; Default — room has no special handler
 (defmethod room-action :default [_ _] nil)
 
@@ -142,12 +154,15 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-LOOK — ZIL: ROUTINE V-LOOK + DESCRIBE-OBJECTS
+;;; Rooms with :ldesc print it directly. Rooms with :action call the handler.
 ;;; ---------------------------------------------------------------------------
 
 (defn v-look []
   (let [room (get-room @here)]
     (println (:desc room))
-    (room-action (:action room) :m-look)
+    (if (:ldesc room)
+      (println (:ldesc room))
+      (room-action (:action room) :m-look))
     (doseq [[_ obj] (objects-in @here)]
       (cond
         (:ldesc obj)                (println (:ldesc obj))
@@ -255,8 +270,16 @@
       (do (reset! here exit)
           (v-look))
 
-      (map? exit)
+      ;; conditional on a global flag: {:to :room :if :flag}
+      (and (map? exit) (:if exit))
       (if (get-in @world [:flags (:if exit)])
+        (do (reset! here (:to exit))
+            (v-look))
+        (println "You can't go that way."))
+
+      ;; conditional on an object's :openbit: {:to :room :if-open :obj-key}
+      (and (map? exit) (:if-open exit))
+      (if (flag? (get-object (:if-open exit)) :openbit)
         (do (reset! here (:to exit))
             (v-look))
         (println "You can't go that way.")))))
