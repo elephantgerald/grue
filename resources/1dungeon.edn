@@ -50,6 +50,13 @@
    :flags   #{:rlandbit :onbit :sacredbit}
    :globals #{:white-house :kitchen-window :forest}}
 
+  :stone-barrow
+  {:desc  "Stone Barrow"
+   :ldesc "You are standing in front of a massive barrow of stone. In the east face is a huge stone door which is open. You cannot see into the dark of the tomb."
+   :action :stone-barrow-fcn
+   :exits  {:ne :west-of-house}
+   :flags  #{:rlandbit :onbit :sacredbit}}
+
   :forest-1
   {:desc   "Forest"
    :ldesc  "This is a forest, with trees in all directions. To the east, there appears to be sunlight."
@@ -59,6 +66,85 @@
             :south :forest-3
             :up    "There is no tree here suitable for climbing."
             :west  "You would need a machete to go further west."}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:tree :songbird :white-house :forest}}
+
+  :forest-2
+  {:desc   "Forest"
+   :ldesc  "This is a dimly lit forest, with large trees all around."
+   :action :forest-room
+   :exits  {:up    "There is no tree here suitable for climbing."
+            :north "The forest becomes impenetrable to the north."
+            :east  :mountains
+            :south :clearing
+            :west  :path}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:tree :songbird :white-house :forest}}
+
+  :forest-3
+  {:desc   "Forest"
+   :ldesc  "This is a dimly lit forest, with large trees all around."
+   :action :forest-room
+   :exits  {:up    "There is no tree here suitable for climbing."
+            :north :clearing
+            :east  "The rank undergrowth prevents eastward movement."
+            :south "Storm-tossed trees block your way."
+            :west  :forest-1
+            :nw    :south-of-house}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:tree :songbird :white-house :forest}}
+
+  :mountains
+  {:desc  "Forest"
+   :ldesc "The forest thins out, revealing impassable mountains."
+   :exits {:up    "The mountains are impassable."
+           :north :forest-2
+           :east  "The mountains are impassable."
+           :south :forest-2
+           :west  :forest-2}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:tree :white-house}}
+
+  :path
+  {:desc   "Forest Path"
+   :ldesc  "This is a path winding through a dimly lit forest. The path heads north-south here. One particularly large tree with some low branches stands at the edge of the path."
+   :action :forest-room
+   :exits  {:up    :up-a-tree
+            :north :grating-clearing
+            :east  :forest-2
+            :south :north-of-house
+            :west  :forest-1}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:tree :songbird :white-house :forest}}
+
+  :up-a-tree
+  {:desc   "Up a Tree"
+   :action :tree-room
+   :exits  {:down :path
+            :up   "You cannot climb any higher."}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:tree :forest :songbird :white-house}}
+
+  :grating-clearing
+  {:desc   "Clearing"
+   :action :clearing-fcn
+   :exits  {:north "The forest becomes impenetrable to the north."
+            :east  :forest-2
+            :west  :forest-1
+            :south :path
+            :down  "You can't go that way."}
+   :flags   #{:rlandbit :onbit :sacredbit}
+   :globals #{:white-house :grate}}
+
+  :clearing
+  {:desc   "Clearing"
+   :ldesc  "You are in a small clearing in a well marked forest path that extends to the east and west."
+   :action :forest-room
+   :exits  {:up    "There is no tree here suitable for climbing."
+            :east  :canyon-view
+            :north :forest-2
+            :south :forest-3
+            :west  :east-of-house}
    :flags   #{:rlandbit :onbit :sacredbit}
    :globals #{:tree :songbird :white-house :forest}}}
 

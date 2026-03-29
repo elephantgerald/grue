@@ -58,6 +58,20 @@
 ;;; FOREST-ROOM — M-LOOK handled by :ldesc on the room; handler is for climbing only
 (defmethod room-action :forest-room [_ _] nil)
 
+;;; TREE-ROOM — ZIL: ROUTINE TREE-ROOM (RARG)
+(defmethod room-action :tree-room [_ msg]
+  (when (= msg :m-look)
+    (println "You are about 10 feet above the ground nestled among some large branches. The nearest branch above you is above your reach.")))
+
+;;; CLEARING-FCN — ZIL: ROUTINE CLEARING-FCN (RARG)
+;;; M-LOOK: base clearing description. Grate state handled when grate is implemented.
+(defmethod room-action :clearing-fcn [_ msg]
+  (when (= msg :m-look)
+    (println "You are in a clearing, with a forest surrounding you on all sides. A path leads south.")))
+
+;;; STONE-BARROW-FCN — M-LOOK handled by :ldesc; handler is for entering only
+(defmethod room-action :stone-barrow-fcn [_ _] nil)
+
 ;;; Default — room has no special handler
 (defmethod room-action :default [_ _] nil)
 
@@ -188,9 +202,11 @@
 ;;; ---------------------------------------------------------------------------
 
 (defn arrive! []
-  (if (flag? (get-room @here) :touchbit)
-    (v-look-brief)
-    (v-look)))
+  (if (nil? (get-room @here))
+    (println "That part of the world isn't implemented yet.")
+    (if (flag? (get-room @here) :touchbit)
+      (v-look-brief)
+      (v-look))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-CLOSE — ZIL: ROUTINE V-CLOSE
