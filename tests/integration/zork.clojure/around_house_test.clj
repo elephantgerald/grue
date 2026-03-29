@@ -92,6 +92,28 @@
          (game-output "west"))))
 
 ;;; ---------------------------------------------------------------------------
+;;; Brief mode — re-entering a visited room shows name + objects only
+;;; Verified against frotz (revision 88 / serial 840726)
+;;; ---------------------------------------------------------------------------
+
+(deftest brief-on-revisit
+  ;; v-look at start sets :touchbit on west-of-house
+  (z/v-look)
+  (game-output "north")   ; visit north-of-house (full desc, sets touchbit)
+  (is (= "West of House\nThere is a small mailbox here."
+         (game-output "west"))))  ; back to west — brief only
+
+(deftest explicit-look-always-full
+  (z/v-look)
+  (game-output "north")
+  (game-output "west")    ; brief re-entry
+  (is (= (str "West of House\n"
+              "You are standing in an open field west of a white house, "
+              "with a boarded front door.\n"
+              "There is a small mailbox here.")
+         (game-output "look"))))  ; explicit look — always full
+
+;;; ---------------------------------------------------------------------------
 ;;; Walking the perimeter
 ;;; ---------------------------------------------------------------------------
 

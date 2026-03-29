@@ -154,19 +154,43 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-LOOK — ZIL: ROUTINE V-LOOK + DESCRIBE-OBJECTS
+;;; Always shows full description. Sets :touchbit to mark room as visited.
 ;;; Rooms with :ldesc print it directly. Rooms with :action call the handler.
 ;;; ---------------------------------------------------------------------------
 
+(defn describe-objects []
+  (doseq [[_ obj] (objects-in @here)]
+    (cond
+      (:ldesc obj)                (println (:ldesc obj))
+      (not (flag? obj :ndescbit)) (println (str "There is a " (:desc obj) " here.")))))
+
 (defn v-look []
+  (swap! world update-in [:rooms @here :flags] conj :touchbit)
   (let [room (get-room @here)]
     (println (:desc room))
     (if (:ldesc room)
       (println (:ldesc room))
       (room-action (:action room) :m-look))
-    (doseq [[_ obj] (objects-in @here)]
-      (cond
-        (:ldesc obj)                (println (:ldesc obj))
-        (not (flag? obj :ndescbit)) (println (str "There is a " (:desc obj) " here."))))))
+    (describe-objects)))
+
+;;; ---------------------------------------------------------------------------
+;;; V-LOOK-BRIEF — room name + objects only, no long description
+;;; ZIL: DESCRIBE-ROOM when TOUCHBIT already set (room previously visited)
+;;; ---------------------------------------------------------------------------
+
+(defn v-look-brief []
+  (println (:desc (get-room @here)))
+  (describe-objects))
+
+;;; ---------------------------------------------------------------------------
+;;; ARRIVE! — called on entering a room via movement
+;;; First visit (no :touchbit): full description. Revisit: brief.
+;;; ---------------------------------------------------------------------------
+
+(defn arrive! []
+  (if (flag? (get-room @here) :touchbit)
+    (v-look-brief)
+    (v-look)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-CLOSE — ZIL: ROUTINE V-CLOSE
@@ -268,13 +292,13 @@
 
       (keyword? exit)
       (do (reset! here exit)
-          (v-look))
+          (arrive!))
 
       ;; conditional on a global flag: {:to :room :if :flag}
       (and (map? exit) (:if exit))
       (if (get-in @world [:flags (:if exit)])
         (do (reset! here (:to exit))
-            (v-look))
+            (arrive!))
         (println "You can't go that way."))
 
       ;; conditional on an object's :openbit: {:to :room :if-open :obj-key}
@@ -283,5 +307,5 @@
       (let [obj (get-object (:if-open exit))]
         (if (flag? obj :openbit)
           (do (reset! here (:to exit))
-              (v-look))
+              (arrive!))
           (println (str "The " (:desc obj) " is closed.")))))))
