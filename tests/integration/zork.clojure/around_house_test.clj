@@ -72,7 +72,7 @@
 
 (deftest behind-house-west-blocked-when-window-closed
   (move-to! :east-of-house)
-  (is (= "You can't go that way."
+  (is (= "The kitchen window is closed."
          (game-output "west"))))
 
 ;;; ---------------------------------------------------------------------------

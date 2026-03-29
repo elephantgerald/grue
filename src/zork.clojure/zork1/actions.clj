@@ -278,8 +278,10 @@
         (println "You can't go that way."))
 
       ;; conditional on an object's :openbit: {:to :room :if-open :obj-key}
+      ;; on failure: "The [desc] is closed." — ZIL generates this from the object
       (and (map? exit) (:if-open exit))
-      (if (flag? (get-object (:if-open exit)) :openbit)
-        (do (reset! here (:to exit))
-            (v-look))
-        (println "You can't go that way.")))))
+      (let [obj (get-object (:if-open exit))]
+        (if (flag? obj :openbit)
+          (do (reset! here (:to exit))
+              (v-look))
+          (println (str "The " (:desc obj) " is closed.")))))))
