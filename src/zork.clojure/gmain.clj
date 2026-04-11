@@ -63,19 +63,26 @@
     (= (:obj cmd) :not-found)
     (println "I don't see that here.")
 
-    ;; Again — delegate to last command, which handles its own turn counting
+    ;; Again — ZIL: replay last parsed command.
+    ;; No prior command → "Beg pardon?" (ZIL: empty AGAIN-LEXV)
+    ;; Prior parse failed (:unknown) → "That would just repeat a mistake."
+    ;; Otherwise → replay (even if the prior action itself failed)
     (= (:verb cmd) :again)
-    (if @last-cmd
-      (perform @last-cmd)
-      (println "You haven't done anything yet."))
+    (cond
+      (nil? @last-cmd)                    (println "Beg pardon?")
+      (= (:verb @last-cmd) :unknown)      (println "That would just repeat a mistake.")
+      :else                               (perform @last-cmd))
 
-    ;; All other verbs — dispatch, then on success record for again and count turn
+    ;; All other verbs — record for again (every parsed command, even failed
+    ;; actions; only :unknown parse failures are excluded via AGAIN check),
+    ;; dispatch, then count the turn on success.
     :else
-    (let [result (dispatch cmd)]
-      (when (= result :turn)
-        (reset! last-cmd cmd)
-        (swap! actions/turns inc))
-      result)))
+    (do
+      (reset! last-cmd cmd)
+      (let [result (dispatch cmd)]
+        (when (= result :turn)
+          (swap! actions/turns inc))
+        result))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Main game loop — mirrors MAIN-LOOP in GMAIN.ZIL

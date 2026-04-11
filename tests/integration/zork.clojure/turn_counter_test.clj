@@ -155,21 +155,32 @@
   (is (= 0 @z/turns)))
 
 ;;; ---------------------------------------------------------------------------
-;;; again only replays the last SUCCESSFUL command (not failed ones)
+;;; again — ZIL semantics (verified against DOSBox r88/840726)
 ;;; ---------------------------------------------------------------------------
 
-(deftest again-replays-last-successful-not-last-attempted
-  ;; wait succeeds → last-cmd = wait
-  ;; take mailbox fails (anchored) → last-cmd must stay as wait
-  ;; again → replays wait → "Time passes." → turn 2
-  (do! "wait")               ; succeeds, turns = 1, last-cmd = wait
-  (do! "take mailbox")       ; fails — "It is securely anchored.", turns stays 1
-  (do! "again")              ; should replay wait, not the failed take
-  (is (= 2 @z/turns)))
+(deftest again-with-no-prior-command-says-beg-pardon
+  ;; ZIL: empty AGAIN-LEXV → "Beg pardon?"
+  (let [sw (java.io.StringWriter.)]
+    (binding [*out* sw]
+      (do! "again"))
+    (is (= "Beg pardon?" (clojure.string/trim (str sw))))))
 
-;;; ---------------------------------------------------------------------------
-;;; again inherits turn cost from the replayed command
-;;; ---------------------------------------------------------------------------
+(deftest again-after-unknown-word-says-repeat-mistake
+  ;; ZIL: P-WON false (parse failed) → "That would just repeat a mistake."
+  (do! "xyzzy")
+  (let [sw (java.io.StringWriter.)]
+    (binding [*out* sw]
+      (do! "again"))
+    (is (= "That would just repeat a mistake." (clojure.string/trim (str sw))))))
+
+(deftest again-replays-last-parsed-command-even-if-action-failed
+  ;; ZIL: AGAIN replays last PARSED command regardless of whether the
+  ;; action succeeded. take mailbox parses OK, action fails → again replays it.
+  (do! "take mailbox")
+  (let [sw (java.io.StringWriter.)]
+    (binding [*out* sw]
+      (do! "again"))
+    (is (= "It is securely anchored." (clojure.string/trim (str sw))))))
 
 (deftest again-replaying-turn-costing-command-costs-a-turn
   (do! "wait")
