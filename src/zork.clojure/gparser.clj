@@ -46,15 +46,18 @@
    "quit"      :quit    "q"         :quit})
 
 ;;; ---------------------------------------------------------------------------
-;;; Object lookup — find an object key by word, searching :synonyms
+;;; Object lookup — find an object key by word, searching :synonyms.
+;;; Returns :not-found when the word was given but matches nothing, so
+;;; perform can distinguish "no object typed" (nil) from "word not recognised".
 ;;; ---------------------------------------------------------------------------
 
 (defn find-object [word]
-  (let [kw (keyword word)]
-    (some (fn [[obj-key obj]]
-            (when (contains? (:synonyms obj) kw)
-              obj-key))
-          (:objects @world/world))))
+  (let [kw (keyword word)
+        result (some (fn [[obj-key obj]]
+                       (when (contains? (:synonyms obj) kw)
+                         obj-key))
+                     (:objects @world/world))]
+    (or result :not-found)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; parse — string -> {:verb :v :obj :o :dir :d}
@@ -94,11 +97,13 @@
           (= verb :look)
           {:verb :look}
 
-          ;; put/drop X in Y  — two-object command
-          (and next-word obj-word (prepositions obj-word))
-          {:verb verb
-           :obj  (find-object next-word)
-           :container (find-object (nth rest-words 2 nil))}
+          ;; put X in/into/on Y  — two-object command
+          (and (= verb :put)
+               (>= (count rest-words) 3)
+               (prepositions (second rest-words)))
+          {:verb      verb
+           :obj       (find-object (first rest-words))
+           :container (find-object (nth rest-words 2))}
 
           ;; verb + object word
           next-word

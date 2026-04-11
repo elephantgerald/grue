@@ -9,7 +9,9 @@
 (def last-cmd (atom nil))
 
 (defn perform [{:keys [verb obj dir] :as cmd}]
-  (case verb
+  (if (= obj :not-found)
+    (println "I don't see that here.")
+    (case verb
     :look      (if obj
                  (println "That sentence isn't one I recognize.")
                  (actions/v-look))
@@ -52,13 +54,14 @@
                  (perform @last-cmd)
                  (println "You haven't done anything yet."))
     :quit      (do (println "Your score is 0. Goodbye.") :quit)
-    :unknown   (println "I don't understand that.")))
+    :unknown   (println "I don't understand that."))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Main game loop — mirrors MAIN-LOOP in GMAIN.ZIL
 ;;; ---------------------------------------------------------------------------
 
 (defn game-loop []
+  (reset! last-cmd nil)
   (actions/load-world!)
   (println "ZORK I: The Great Underground Empire")
   (println "Copyright (c) 1981, 1982, 1983 Infocom, Inc. All rights reserved.")
@@ -73,7 +76,7 @@
     (let [input (read-line)]
       (when (some? input)
         (let [cmd    (parser/parse input)
-              _      (when-not (= (:verb cmd) :again)
+              _      (when-not (#{:again :unknown} (:verb cmd))
                        (reset! last-cmd cmd))
               result (perform cmd)]
           (when-not (= result :quit)

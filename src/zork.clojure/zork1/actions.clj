@@ -1,6 +1,7 @@
 (ns zork1.actions
   (:require [clojure.edn :as edn]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [clojure.string :as str]))
 
 ;;; ---------------------------------------------------------------------------
 ;;; World state — mirrors ZIL globals
@@ -152,7 +153,7 @@
             ;; anything else — list contents
             :else
             (do (print (str "Opening the " (:desc obj) " reveals "))
-                (println (str (clojure.string/join ", "
+                (println (str (str/join ", "
                                (map (fn [[_ o]] (str "a " (:desc o))) contents))
                               ".")))))))))
 
@@ -324,9 +325,15 @@
 
 (defn v-move [obj-key]
   (let [obj (get-object obj-key)]
-    (if obj
-      (println "You can't move that.")
-      (println "I don't see that here."))))
+    (cond
+      (nil? obj)
+      (println "I don't see that here.")
+
+      (not (#{@here :winner} (:location obj)))
+      (println "I don't see that here.")
+
+      :else
+      (println "You can't move that."))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-SCORE — stub until score tracking is implemented
