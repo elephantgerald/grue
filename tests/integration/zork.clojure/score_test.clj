@@ -140,3 +140,114 @@
 (deftest score-command-costs-no-turn
   (do! "score")
   (is (= 0 @z/turns)))
+
+;;; ---------------------------------------------------------------------------
+;;; v-score return value — ZIL: V-SCORE returns ,SCORE (1actions.zil:4044)
+;;; ---------------------------------------------------------------------------
+
+(deftest v-score-returns-score-value
+  (reset! z/score 42)
+  (is (= 42 (z/v-score))))
+
+;;; ---------------------------------------------------------------------------
+;;; score-obj with room key — ZIL: V-WALK calls SCORE-OBJ on destination room
+;;; (gverbs.zil:2122); rooms and objects share :value semantics
+;;; ---------------------------------------------------------------------------
+
+(deftest score-obj-awards-room-value
+  (swap! z/world assoc-in [:rooms :north-of-house :value] 8)
+  (z/score-obj :north-of-house)
+  (is (= 8 @z/score)))
+
+(deftest score-obj-zeroes-room-value-after-awarding
+  (swap! z/world assoc-in [:rooms :north-of-house :value] 8)
+  (z/score-obj :north-of-house)
+  (z/score-obj :north-of-house)
+  (is (= 8 @z/score)))
+
+;;; ---------------------------------------------------------------------------
+;;; v-put deposit scoring — ZIL: V-PUT calls SCORE-OBJ ,PRSO (gverbs.zil:1113)
+;;; ---------------------------------------------------------------------------
+
+(deftest v-put-deposit-awards-score
+  (swap! z/world assoc-in [:objects :advertisement :value] 5)
+  (swap! z/world assoc-in [:objects :advertisement :location] :winner)
+  (swap! z/world assoc-in [:objects :mailbox :flags] #{:contbit :openbit})
+  (z/v-put :advertisement :mailbox)
+  (is (= 5 @z/score)))
+
+(deftest v-put-deposit-score-awarded-once
+  (swap! z/world assoc-in [:objects :advertisement :value] 5)
+  (swap! z/world assoc-in [:objects :advertisement :location] :winner)
+  (swap! z/world assoc-in [:objects :mailbox :flags] #{:contbit :openbit})
+  (z/v-put :advertisement :mailbox)
+  ;; Move it back and deposit again — :value is now 0, no second award
+  (swap! z/world assoc-in [:objects :advertisement :location] :winner)
+  (z/v-put :advertisement :mailbox)
+  (is (= 5 @z/score)))
+
+;;; ---------------------------------------------------------------------------
+;;; v-walk room-discovery scoring — ZIL: V-WALK calls SCORE-OBJ .RM
+;;; (gverbs.zil:2122)
+;;; ---------------------------------------------------------------------------
+
+(deftest v-walk-awards-room-discovery-score
+  (swap! z/world assoc-in [:rooms :north-of-house :value] 10)
+  (reset! z/here :west-of-house)
+  (do! "north")
+  (is (= 10 @z/score)))
+
+(deftest v-walk-room-score-awarded-once
+  (swap! z/world assoc-in [:rooms :north-of-house :value] 10)
+  (reset! z/here :west-of-house)
+  (do! "north")
+  ;; Return and re-enter — value is now 0, no second award
+  (reset! z/here :west-of-house)
+  (do! "north")
+  (is (= 10 @z/score)))
+
+;;; ---------------------------------------------------------------------------
+;;; score-upd endgame side effect at 350 — ZIL: gverbs.zil:1855–1866
+;;; Sets WON-FLAG, clears MAP :invisible, clears WEST-OF-HOUSE :touchbit,
+;;; prints the whisper message.
+;;; ---------------------------------------------------------------------------
+
+(deftest score-upd-sets-won-flag-at-350
+  (reset! z/score 340)
+  (reset! z/base-score 340)
+  (z/score-upd 10)
+  (is @z/won-flag))
+
+(deftest score-upd-sets-world-won-flag-at-350
+  (reset! z/score 340)
+  (reset! z/base-score 340)
+  (z/score-upd 10)
+  (is (true? (get-in @z/world [:flags :won-flag]))))
+
+(deftest score-upd-clears-map-invisible-at-350
+  (reset! z/score 340)
+  (reset! z/base-score 340)
+  (swap! z/world assoc-in [:objects :map :flags] #{:invisible :readbit :takebit})
+  (z/score-upd 10)
+  (is (not (contains? (get-in @z/world [:objects :map :flags]) :invisible))))
+
+(deftest score-upd-clears-west-of-house-touchbit-at-350
+  ;; Give west-of-house a touchbit so we can observe it being cleared
+  (reset! z/score 340)
+  (reset! z/base-score 340)
+  (swap! z/world update-in [:rooms :west-of-house :flags] conj :touchbit)
+  (z/score-upd 10)
+  (is (not (contains? (get-in @z/world [:rooms :west-of-house :flags]) :touchbit))))
+
+(deftest score-upd-prints-whisper-at-350
+  (reset! z/score 340)
+  (reset! z/base-score 340)
+  (let [out (output-of #(z/score-upd 10))]
+    (is (clojure.string/includes? out "Look to your treasures for the final secret."))))
+
+(deftest score-upd-endgame-not-retriggered-when-won-flag-set
+  (reset! z/score 349)
+  (reset! z/base-score 349)
+  (reset! z/won-flag true)
+  (let [out (output-of #(z/score-upd 1))]
+    (is (not (clojure.string/includes? out "Look to your treasures")))))
