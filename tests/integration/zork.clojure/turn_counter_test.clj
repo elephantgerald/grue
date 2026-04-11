@@ -155,6 +155,19 @@
   (is (= 0 @z/turns)))
 
 ;;; ---------------------------------------------------------------------------
+;;; again only replays the last SUCCESSFUL command (not failed ones)
+;;; ---------------------------------------------------------------------------
+
+(deftest again-replays-last-successful-not-last-attempted
+  ;; wait succeeds → last-cmd = wait
+  ;; take mailbox fails (anchored) → last-cmd must stay as wait
+  ;; again → replays wait → "Time passes." → turn 2
+  (do! "wait")               ; succeeds, turns = 1, last-cmd = wait
+  (do! "take mailbox")       ; fails — "It is securely anchored.", turns stays 1
+  (do! "again")              ; should replay wait, not the failed take
+  (is (= 2 @z/turns)))
+
+;;; ---------------------------------------------------------------------------
 ;;; again inherits turn cost from the replayed command
 ;;; ---------------------------------------------------------------------------
 

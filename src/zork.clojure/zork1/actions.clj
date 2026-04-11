@@ -348,7 +348,8 @@
 ;;; ---------------------------------------------------------------------------
 
 (defn v-score []
-  (println (str "Your score is 0 (total of 350 points), in " @turns " moves."))
+  (println (str "Your score is 0 (total of 350 points), in " @turns
+                (if (= @turns 1) " move." " moves.")))
   (println "This gives you the rank of Beginner."))
 
 ;;; ---------------------------------------------------------------------------

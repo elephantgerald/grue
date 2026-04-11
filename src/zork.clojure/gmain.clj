@@ -69,15 +69,13 @@
       (perform @last-cmd)
       (println "You haven't done anything yet."))
 
-    ;; All other verbs — record for again, dispatch, count turn if succeeded
+    ;; All other verbs — dispatch, then on success record for again and count turn
     :else
-    (do
-      (when-not (= (:verb cmd) :unknown)
-        (reset! last-cmd cmd))
-      (let [result (dispatch cmd)]
-        (when (= result :turn)
-          (swap! actions/turns inc))
-        result))))
+    (let [result (dispatch cmd)]
+      (when (= result :turn)
+        (reset! last-cmd cmd)
+        (swap! actions/turns inc))
+      result)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Main game loop — mirrors MAIN-LOOP in GMAIN.ZIL
