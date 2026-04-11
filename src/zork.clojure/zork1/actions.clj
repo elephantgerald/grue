@@ -7,10 +7,13 @@
 ;;; World state — mirrors ZIL globals
 ;;; ---------------------------------------------------------------------------
 
-(def world  (atom nil))            ; loaded from 1dungeon.edn
-(def here   (atom :west-of-house)) ; current room  — ZIL: HERE
-(def winner (atom :adventurer))    ; current actor — ZIL: WINNER
-(def turns  (atom 0))              ; move counter  — ZIL: MOVES
+(def world       (atom nil))            ; loaded from 1dungeon.edn
+(def here        (atom :west-of-house)) ; current room  — ZIL: HERE
+(def winner      (atom :adventurer))    ; current actor — ZIL: WINNER
+(def turns       (atom 0))              ; move counter  — ZIL: MOVES
+(def score       (atom 0))              ; current score — ZIL: SCORE
+(def base-score  (atom 0))              ; pickup total  — ZIL: BASE-SCORE
+(def won-flag    (atom false))          ; endgame flag  — ZIL: WON-FLAG
 
 ;;; ---------------------------------------------------------------------------
 ;;; World loading
@@ -18,7 +21,10 @@
 
 (defn load-world! []
   (reset! world (edn/read-string (slurp (io/resource "1dungeon.edn"))))
-  (reset! turns 0))
+  (reset! turns 0)
+  (reset! score 0)
+  (reset! base-score 0)
+  (reset! won-flag false))
 
 ;;; ---------------------------------------------------------------------------
 ;;; World queries
@@ -37,6 +43,36 @@
 ;;; flag? mirrors ZIL FSET?
 (defn flag? [obj flag]
   (contains? (:flags obj) flag))
+
+;;; ---------------------------------------------------------------------------
+;;; SCORE-UPD / SCORE-OBJ — ZIL: ROUTINE SCORE-UPD / ROUTINE SCORE-OBJ
+;;; ---------------------------------------------------------------------------
+
+;;; ZIL: SCORE-UPD — add n to both base-score and score.
+;;; At 350 points (first time): set WON-FLAG, clear MAP :invisible, clear
+;;; WEST-OF-HOUSE :touchbit, and print the endgame whisper (gverbs.zil:1855–1866).
+(defn score-upd [n]
+  (swap! base-score + n)
+  (swap! score + n)
+  (when (and (= @score 350) (not @won-flag))
+    (reset! won-flag true)
+    (swap! world assoc-in [:flags :won-flag] true)
+    (swap! world update-in [:objects :map :flags] (fnil disj #{}) :invisible)
+    (swap! world update-in [:rooms :west-of-house :flags] disj :touchbit)
+    (println "An almost inaudible voice whispers in your ear, \"Look to your treasures for the final secret.\"")))
+
+;;; ZIL: SCORE-OBJ — award entity's :value points (once only: zeroed after).
+;;; Works for both objects (:objects) and rooms (:rooms), matching ZIL where
+;;; rooms and objects share the same property table (V-WALK calls SCORE-OBJ on
+;;; the destination room, gverbs.zil:2122).
+(defn score-obj [entity-key]
+  (let [path (if (get-in @world [:objects entity-key])
+               [:objects entity-key :value]
+               [:rooms entity-key :value])
+        v    (get-in @world path 0)]
+    (when (pos? v)
+      (score-upd v)
+      (swap! world assoc-in path 0))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Room action handlers — ZIL: ROUTINE WEST-HOUSE (RARG)
@@ -256,6 +292,7 @@
       :else
       (do
         (swap! world assoc-in [:objects obj-key :location] container-key)
+        (score-obj obj-key)
         (println "Done.")
         :turn))))
 
@@ -277,9 +314,10 @@
            (= :m-handled (object-action obj-key :take)))
       nil
 
-      ;; TAKEBIT — take it
+      ;; TAKEBIT — take it; award any pickup score (ZIL: SCORE-OBJ in ITAKE)
       (flag? obj :takebit)
       (do (swap! world assoc-in [:objects obj-key :location] :winner)
+          (score-obj obj-key)
           (println "Taken.")
           :turn)
 
@@ -344,13 +382,24 @@
       (println "You can't move that."))))
 
 ;;; ---------------------------------------------------------------------------
-;;; V-SCORE — stub until score tracking is implemented
+;;; V-SCORE — ZIL: ROUTINE V-SCORE in 1actions.zil
 ;;; ---------------------------------------------------------------------------
 
 (defn v-score []
-  (println (str "Your score is 0 (total of 350 points), in " @turns
+  (println (str "Your score is " @score " (total of 350 points), in " @turns
                 (if (= @turns 1) " move." " moves.")))
-  (println "This gives you the rank of Beginner."))
+  (println (str "This gives you the rank of "
+                (cond
+                  (= @score 350) "Master Adventurer"
+                  (> @score 330) "Wizard"
+                  (> @score 300) "Master"
+                  (> @score 200) "Adventurer"
+                  (> @score 100) "Junior Adventurer"
+                  (> @score 50)  "Novice Adventurer"
+                  (> @score 25)  "Amateur Adventurer"
+                  :else          "Beginner")
+                "."))
+  @score)
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-WALK — ZIL: ROUTINE V-WALK
@@ -368,6 +417,7 @@
 
       (keyword? exit)
       (do (reset! here exit)
+          (score-obj exit)
           (arrive!)
           :turn)
 
@@ -375,6 +425,7 @@
       (and (map? exit) (:if exit))
       (if (get-in @world [:flags (:if exit)])
         (do (reset! here (:to exit))
+            (score-obj (:to exit))
             (arrive!)
             :turn)
         (println "You can't go that way."))
@@ -385,6 +436,7 @@
       (let [obj (get-object (:if-open exit))]
         (if (flag? obj :openbit)
           (do (reset! here (:to exit))
+              (score-obj (:to exit))
               (arrive!)
               :turn)
           (println (str "The " (:desc obj) " is closed.")))))))
