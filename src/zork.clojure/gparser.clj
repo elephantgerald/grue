@@ -32,11 +32,17 @@
    "take"      :take    "get"       :take
    "pick"      :take    "carry"     :take
    "put"       :put     "place"     :put    "insert" :put
-   "drop"      :drop
+   "drop"      :drop    "throw"     :drop
    "close"     :close   "shut"      :close
    "inventory" :inventory "i"       :inventory
    "go"        :go      "walk"      :go
    "run"       :go      "proceed"   :go    "step" :go
+   "climb"     :climb
+   "wait"      :wait    "z"         :wait
+   "again"     :again   "g"         :again
+   "diagnose"  :diagnose
+   "move"      :move    "push"      :move  "pull" :move
+   "score"     :score
    "quit"      :quit    "q"         :quit})
 
 ;;; ---------------------------------------------------------------------------

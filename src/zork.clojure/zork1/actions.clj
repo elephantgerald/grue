@@ -293,6 +293,50 @@
           (println (str "  A " (:desc obj))))))))
 
 ;;; ---------------------------------------------------------------------------
+;;; V-DROP — ZIL: ROUTINE V-DROP
+;;; ---------------------------------------------------------------------------
+
+(defn v-drop [obj-key]
+  (let [obj (get-object obj-key)]
+    (if (not= (:location obj) :winner)
+      (println "You're not holding that.")
+      (do
+        (swap! world assoc-in [:objects obj-key :location] @here)
+        (println "Dropped.")))))
+
+;;; ---------------------------------------------------------------------------
+;;; V-WAIT — ZIL: ROUTINE V-WAIT
+;;; ---------------------------------------------------------------------------
+
+(defn v-wait []
+  (println "Time passes."))
+
+;;; ---------------------------------------------------------------------------
+;;; V-DIAGNOSE — ZIL: ROUTINE V-DIAGNOSE
+;;; ---------------------------------------------------------------------------
+
+(defn v-diagnose []
+  (println "You are in perfect health."))
+
+;;; ---------------------------------------------------------------------------
+;;; V-MOVE — ZIL: ROUTINE V-MOVE (push/pull/move)
+;;; ---------------------------------------------------------------------------
+
+(defn v-move [obj-key]
+  (let [obj (get-object obj-key)]
+    (if obj
+      (println "You can't move that.")
+      (println "I don't see that here."))))
+
+;;; ---------------------------------------------------------------------------
+;;; V-SCORE — stub until score tracking is implemented
+;;; ---------------------------------------------------------------------------
+
+(defn v-score []
+  (println "Your score is 0 (total of 350 points), in 0 moves.")
+  (println "This gives you the rank of Beginner."))
+
+;;; ---------------------------------------------------------------------------
 ;;; V-WALK — ZIL: ROUTINE V-WALK
 ;;; Exit types: keyword (go), string (blocked), map {:to :room :if :flag}
 ;;; ---------------------------------------------------------------------------
