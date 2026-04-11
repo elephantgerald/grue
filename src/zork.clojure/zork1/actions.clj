@@ -10,13 +10,15 @@
 (def world  (atom nil))            ; loaded from 1dungeon.edn
 (def here   (atom :west-of-house)) ; current room  — ZIL: HERE
 (def winner (atom :adventurer))    ; current actor — ZIL: WINNER
+(def turns  (atom 0))              ; move counter  — ZIL: MOVES
 
 ;;; ---------------------------------------------------------------------------
 ;;; World loading
 ;;; ---------------------------------------------------------------------------
 
 (defn load-world! []
-  (reset! world (edn/read-string (slurp (io/resource "1dungeon.edn")))))
+  (reset! world (edn/read-string (slurp (io/resource "1dungeon.edn"))))
+  (reset! turns 0))
 
 ;;; ---------------------------------------------------------------------------
 ;;; World queries
@@ -155,7 +157,8 @@
             (do (print (str "Opening the " (:desc obj) " reveals "))
                 (println (str (str/join ", "
                                (map (fn [[_ o]] (str "a " (:desc o))) contents))
-                              ".")))))))))
+                              "."))))
+          :turn)))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-READ — ZIL: ROUTINE V-READ
@@ -164,7 +167,7 @@
 (defn v-read [obj-key]
   (let [obj (get-object obj-key)]
     (if (flag? obj :readbit)
-      (println (:text obj))
+      (do (println (:text obj)) :turn)
       (println (str "How does one read a " (:desc obj) "?")))))
 
 ;;; ---------------------------------------------------------------------------
@@ -226,7 +229,8 @@
       :else
       (do
         (swap! world update-in [:objects obj-key :flags] disj :openbit)
-        (println "Closed.")))))
+        (println "Closed.")
+        :turn))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-PUT — ZIL: ROUTINE V-PUT
@@ -252,7 +256,8 @@
       :else
       (do
         (swap! world assoc-in [:objects obj-key :location] container-key)
-        (println "Done.")))))
+        (println "Done.")
+        :turn))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-TAKE — ZIL: ROUTINE V-TAKE + ITAKE
@@ -275,7 +280,8 @@
       ;; TAKEBIT — take it
       (flag? obj :takebit)
       (do (swap! world assoc-in [:objects obj-key :location] :winner)
-          (println "Taken."))
+          (println "Taken.")
+          :turn)
 
       :else
       (println "You can't take that."))))
@@ -303,14 +309,16 @@
       (println "You're not holding that.")
       (do
         (swap! world assoc-in [:objects obj-key :location] @here)
-        (println "Dropped.")))))
+        (println "Dropped.")
+        :turn))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-WAIT — ZIL: ROUTINE V-WAIT
 ;;; ---------------------------------------------------------------------------
 
 (defn v-wait []
-  (println "Time passes."))
+  (println "Time passes.")
+  :turn)
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-DIAGNOSE — ZIL: ROUTINE V-DIAGNOSE
@@ -340,7 +348,8 @@
 ;;; ---------------------------------------------------------------------------
 
 (defn v-score []
-  (println "Your score is 0 (total of 350 points), in 0 moves.")
+  (println (str "Your score is 0 (total of 350 points), in " @turns
+                (if (= @turns 1) " move." " moves.")))
   (println "This gives you the rank of Beginner."))
 
 ;;; ---------------------------------------------------------------------------
@@ -359,13 +368,15 @@
 
       (keyword? exit)
       (do (reset! here exit)
-          (arrive!))
+          (arrive!)
+          :turn)
 
       ;; conditional on a global flag: {:to :room :if :flag}
       (and (map? exit) (:if exit))
       (if (get-in @world [:flags (:if exit)])
         (do (reset! here (:to exit))
-            (arrive!))
+            (arrive!)
+            :turn)
         (println "You can't go that way."))
 
       ;; conditional on an object's :openbit: {:to :room :if-open :obj-key}
@@ -374,5 +385,6 @@
       (let [obj (get-object (:if-open exit))]
         (if (flag? obj :openbit)
           (do (reset! here (:to exit))
-              (arrive!))
+              (arrive!)
+              :turn)
           (println (str "The " (:desc obj) " is closed.")))))))
