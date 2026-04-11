@@ -7,10 +7,12 @@
 ;;; World state — mirrors ZIL globals
 ;;; ---------------------------------------------------------------------------
 
-(def world  (atom nil))            ; loaded from 1dungeon.edn
-(def here   (atom :west-of-house)) ; current room  — ZIL: HERE
-(def winner (atom :adventurer))    ; current actor — ZIL: WINNER
-(def turns  (atom 0))              ; move counter  — ZIL: MOVES
+(def world       (atom nil))            ; loaded from 1dungeon.edn
+(def here        (atom :west-of-house)) ; current room  — ZIL: HERE
+(def winner      (atom :adventurer))    ; current actor — ZIL: WINNER
+(def turns       (atom 0))              ; move counter  — ZIL: MOVES
+(def score       (atom 0))              ; current score — ZIL: SCORE
+(def base-score  (atom 0))              ; pickup total  — ZIL: BASE-SCORE
 
 ;;; ---------------------------------------------------------------------------
 ;;; World loading
@@ -18,7 +20,9 @@
 
 (defn load-world! []
   (reset! world (edn/read-string (slurp (io/resource "1dungeon.edn"))))
-  (reset! turns 0))
+  (reset! turns 0)
+  (reset! score 0)
+  (reset! base-score 0))
 
 ;;; ---------------------------------------------------------------------------
 ;;; World queries
@@ -37,6 +41,22 @@
 ;;; flag? mirrors ZIL FSET?
 (defn flag? [obj flag]
   (contains? (:flags obj) flag))
+
+;;; ---------------------------------------------------------------------------
+;;; SCORE-UPD / SCORE-OBJ — ZIL: ROUTINE SCORE-UPD / ROUTINE SCORE-OBJ
+;;; ---------------------------------------------------------------------------
+
+;;; ZIL: SCORE-UPD — add n to both base-score and score
+(defn score-upd [n]
+  (swap! base-score + n)
+  (swap! score + n))
+
+;;; ZIL: SCORE-OBJ — award object's :value points (once only: zeroed after)
+(defn score-obj [obj-key]
+  (let [v (get-in @world [:objects obj-key :value] 0)]
+    (when (pos? v)
+      (score-upd v)
+      (swap! world assoc-in [:objects obj-key :value] 0))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Room action handlers — ZIL: ROUTINE WEST-HOUSE (RARG)
@@ -277,9 +297,10 @@
            (= :m-handled (object-action obj-key :take)))
       nil
 
-      ;; TAKEBIT — take it
+      ;; TAKEBIT — take it; award any pickup score (ZIL: SCORE-OBJ in ITAKE)
       (flag? obj :takebit)
       (do (swap! world assoc-in [:objects obj-key :location] :winner)
+          (score-obj obj-key)
           (println "Taken.")
           :turn)
 
@@ -344,13 +365,23 @@
       (println "You can't move that."))))
 
 ;;; ---------------------------------------------------------------------------
-;;; V-SCORE — stub until score tracking is implemented
+;;; V-SCORE — ZIL: ROUTINE V-SCORE in 1actions.zil
 ;;; ---------------------------------------------------------------------------
 
 (defn v-score []
-  (println (str "Your score is 0 (total of 350 points), in " @turns
+  (println (str "Your score is " @score " (total of 350 points), in " @turns
                 (if (= @turns 1) " move." " moves.")))
-  (println "This gives you the rank of Beginner."))
+  (println (str "This gives you the rank of "
+                (cond
+                  (= @score 350) "Master Adventurer"
+                  (> @score 330) "Wizard"
+                  (> @score 300) "Master"
+                  (> @score 200) "Adventurer"
+                  (> @score 100) "Junior Adventurer"
+                  (> @score 50)  "Novice Adventurer"
+                  (> @score 25)  "Amateur Adventurer"
+                  :else          "Beginner")
+                ".")))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-WALK — ZIL: ROUTINE V-WALK
