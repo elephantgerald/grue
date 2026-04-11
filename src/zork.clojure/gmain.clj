@@ -4,14 +4,18 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; Verb dispatch — mirrors PERFORM in GMAIN.ZIL
+;;;
+;;; Returns :turn when the command consumed a move (successful state-changing
+;;; action), :quit when the player quits, or nil otherwise.
+;;; Increments actions/turns on :turn before returning.
 ;;; ---------------------------------------------------------------------------
 
 (def last-cmd (atom nil))
 
-(defn perform [{:keys [verb obj dir] :as cmd}]
-  (if (= obj :not-found)
-    (println "I don't see that here.")
-    (case verb
+(declare perform)
+
+(defn- dispatch [{:keys [verb obj dir] :as cmd}]
+  (case verb
     :look      (if obj
                  (println "That sentence isn't one I recognize.")
                  (actions/v-look))
@@ -50,11 +54,30 @@
     :go        (if dir
                  (actions/v-walk dir)
                  (println "Which direction?"))
-    :again     (if @last-cmd
-                 (perform @last-cmd)
-                 (println "You haven't done anything yet."))
     :quit      (do (println "Your score is 0. Goodbye.") :quit)
-    :unknown   (println "I don't understand that."))))
+    :unknown   (println "I don't understand that.")))
+
+(defn perform [cmd]
+  (cond
+    ;; Unrecognised object word — short-circuit, no turn
+    (= (:obj cmd) :not-found)
+    (println "I don't see that here.")
+
+    ;; Again — delegate to last command, which handles its own turn counting
+    (= (:verb cmd) :again)
+    (if @last-cmd
+      (perform @last-cmd)
+      (println "You haven't done anything yet."))
+
+    ;; All other verbs — record for again, dispatch, count turn if succeeded
+    :else
+    (do
+      (when-not (= (:verb cmd) :unknown)
+        (reset! last-cmd cmd))
+      (let [result (dispatch cmd)]
+        (when (= result :turn)
+          (swap! actions/turns inc))
+        result))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Main game loop — mirrors MAIN-LOOP in GMAIN.ZIL
@@ -76,8 +99,6 @@
     (let [input (read-line)]
       (when (some? input)
         (let [cmd    (parser/parse input)
-              _      (when-not (#{:again :unknown} (:verb cmd))
-                       (reset! last-cmd cmd))
               result (perform cmd)]
           (when-not (= result :quit)
             (recur)))))))
