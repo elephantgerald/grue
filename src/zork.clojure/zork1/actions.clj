@@ -14,6 +14,7 @@
 (def score       (atom 0))              ; current score — ZIL: SCORE
 (def base-score  (atom 0))              ; pickup total  — ZIL: BASE-SCORE
 (def won-flag    (atom false))          ; endgame flag  — ZIL: WON-FLAG
+(def rug-moved   (atom false))          ; rug moved in living room — ZIL: RUG-MOVED
 
 ;;; ---------------------------------------------------------------------------
 ;;; World loading
@@ -24,7 +25,8 @@
   (reset! turns 0)
   (reset! score 0)
   (reset! base-score 0)
-  (reset! won-flag false))
+  (reset! won-flag false)
+  (reset! rug-moved false))
 
 ;;; ---------------------------------------------------------------------------
 ;;; World queries
@@ -125,7 +127,7 @@
 ;;; M-LOOK description varies based on rug-moved flag and trap-door openbit.
 (defmethod room-action :living-room-fcn [_ msg]
   (when (= msg :m-look)
-    (let [rug-moved  (get-in @world [:flags :rug-moved])
+    (let [rug-moved  @rug-moved
           door-open  (flag? (get-object :trap-door) :openbit)]
       (print "You are in the living room. There is a doorway to the east, a wooden\ndoor with strange gothic lettering to the west, which appears to be\nnailed shut, a trophy case, ")
       (println (cond
@@ -145,8 +147,7 @@
     :m-enter
     (let [trap (get-object :trap-door)]
       (when (and (flag? trap :openbit) (not (flag? trap :touchbit)))
-        (swap! world update-in [:objects :trap-door :flags] disj :openbit)
-        (swap! world update-in [:objects :trap-door :flags] conj :touchbit)
+        (swap! world update-in [:objects :trap-door :flags] #(-> % (disj :openbit) (conj :touchbit)))
         (println "The trap door crashes shut, and you hear someone barring it.")
         (println)))
 
@@ -483,4 +484,9 @@
               (score-obj (:to exit))
               (arrive!)
               :turn)
-          (println (str "The " (:desc obj) " is closed.")))))))
+          ;; Invisible objects (e.g. trap door before rug is moved) don't
+          ;; reveal themselves in the blocked message — ZIL falls through to
+          ;; "You can't go that way."
+          (if (flag? obj :invisible)
+            (println "You can't go that way.")
+            (println (str "The " (:desc obj) " is closed."))))))))

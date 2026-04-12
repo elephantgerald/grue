@@ -95,13 +95,13 @@
     (is (clojure.string/includes? out "a large oriental rug in the center of the room."))))
 
 (deftest living-room-description-rug-moved-door-closed
-  (swap! z/world assoc-in [:flags :rug-moved] true)
+  (reset! z/rug-moved true)
   (reset! z/here :living-room)
   (let [out (output-of z/v-look)]
     (is (clojure.string/includes? out "a closed trap door at your feet."))))
 
 (deftest living-room-description-rug-moved-door-open
-  (swap! z/world assoc-in [:flags :rug-moved] true)
+  (reset! z/rug-moved true)
   (swap! z/world update-in [:objects :trap-door :flags] conj :openbit)
   (reset! z/here :living-room)
   (let [out (output-of z/v-look)]
@@ -161,8 +161,18 @@
   (do! "go east")
   (is (= :east-of-house @z/here)))
 
-(deftest living-room-down-blocked-when-trap-door-closed
-  ;; Trap door starts closed
+(deftest living-room-down-blocked-when-trap-door-invisible
+  ;; Trap door is invisible before rug is moved — player sees "can't go that way"
+  ;; Verified against DOSBox r88/840726
+  (reset! z/here :living-room)
+  (let [out (output-of #(do! "go down"))]
+    (is (clojure.string/includes? out "You can't go that way."))))
+
+(deftest living-room-down-blocked-when-trap-door-closed-but-visible
+  ;; Trap door visible (rug moved) but still closed — "The trap door is closed."
+  ;; Verified against DOSBox r88/840726
+  (reset! z/rug-moved true)
+  (swap! z/world update-in [:objects :trap-door :flags] disj :invisible)
   (reset! z/here :living-room)
   (let [out (output-of #(do! "go down"))]
     (is (clojure.string/includes? out "The trap door is closed."))))
