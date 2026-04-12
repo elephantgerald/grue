@@ -111,6 +111,47 @@
 ;;; STONE-BARROW-FCN — M-LOOK handled by :ldesc; handler is for entering only
 (defmethod room-action :stone-barrow-fcn [_ _] nil)
 
+;;; KITCHEN-FCN — ZIL: ROUTINE KITCHEN-FCN (RARG) in 1actions.zil:385
+;;; M-LOOK description interpolates kitchen-window state.
+(defmethod room-action :kitchen-fcn [_ msg]
+  (when (= msg :m-look)
+    (let [window (get-object :kitchen-window)]
+      (print "You are in the kitchen of the white house. A table seems to\nhave been used recently for the preparation of food. A passage\nleads to the west and a dark staircase can be seen leading\nupward. A dark chimney leads down and to the east is a small\nwindow which is ")
+      (if (flag? window :openbit)
+        (println "open.")
+        (println "slightly ajar.")))))
+
+;;; LIVING-ROOM-FCN — ZIL: ROUTINE LIVING-ROOM-FCN (RARG) in 1actions.zil:449
+;;; M-LOOK description varies based on rug-moved flag and trap-door openbit.
+(defmethod room-action :living-room-fcn [_ msg]
+  (when (= msg :m-look)
+    (let [rug-moved  (get-in @world [:flags :rug-moved])
+          door-open  (flag? (get-object :trap-door) :openbit)]
+      (print "You are in the living room. There is a doorway to the east, a wooden\ndoor with strange gothic lettering to the west, which appears to be\nnailed shut, a trophy case, ")
+      (println (cond
+                 (and rug-moved door-open) "and a rug lying beside an open trap door."
+                 rug-moved                 "and a closed trap door at your feet."
+                 door-open                 "and an open trap door at your feet."
+                 :else                     "and a large oriental rug in the center of the room.")))))
+
+;;; CELLAR-FCN — ZIL: ROUTINE CELLAR-FCN (RARG) in 1actions.zil:531
+;;; M-LOOK: fixed description.
+;;; M-ENTER: if trap-door was open and untouched, crash it shut (1actions.zil:537-543).
+(defmethod room-action :cellar-fcn [_ msg]
+  (case msg
+    :m-look
+    (println "You are in a dark and damp cellar with a narrow passageway leading\nnorth, and a crawlway to the south. On the west is the bottom of a\nsteep metal ramp which is unclimbable.")
+
+    :m-enter
+    (let [trap (get-object :trap-door)]
+      (when (and (flag? trap :openbit) (not (flag? trap :touchbit)))
+        (swap! world update-in [:objects :trap-door :flags] disj :openbit)
+        (swap! world update-in [:objects :trap-door :flags] conj :touchbit)
+        (println "The trap door crashes shut, and you hear someone barring it.")
+        (println)))
+
+    nil))
+
 ;;; Default — room has no special handler
 (defmethod room-action :default [_ _] nil)
 
@@ -238,15 +279,18 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; ARRIVE! — called on entering a room via movement
-;;; First visit (no :touchbit): full description. Revisit: brief.
+;;; Fires M-ENTER on the room action handler (side effects: trap-door close, etc.)
+;;; then shows full or brief description depending on :touchbit.
 ;;; ---------------------------------------------------------------------------
 
 (defn arrive! []
   (if (nil? (get-room @here))
     (println "That part of the world isn't implemented yet.")
-    (if (flag? (get-room @here) :touchbit)
-      (v-look-brief)
-      (v-look))))
+    (do
+      (room-action (:action (get-room @here)) :m-enter)
+      (if (flag? (get-room @here) :touchbit)
+        (v-look-brief)
+        (v-look)))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-CLOSE — ZIL: ROUTINE V-CLOSE
