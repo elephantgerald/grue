@@ -208,6 +208,16 @@
   (do! "go up")
   (is (= :grating-clearing @z/here)))
 
+;;; :if-open with :invisible gating object falls through to default message, ignoring :else.
+;;; This locks in the ZIL-faithful behavior that keeps the pre-rug trap-door exit correct.
+(deftest if-open-invisible-object-ignores-else-string
+  ;; Grate has :invisible set (default state — :else "The grating is closed." must be suppressed)
+  (reset! z/here :grating-room)
+  (let [out (output-of #(do! "go up"))]
+    (is (clojure.string/includes? out "You can't go that way."))
+    (is (not (clojure.string/includes? out "The grating is closed.")))
+    (is (= :grating-room @z/here))))
+
 ;;; Maze → cyclops-room
 (deftest maze-15-se-to-cyclops-room
   (reset! z/here :maze-15)

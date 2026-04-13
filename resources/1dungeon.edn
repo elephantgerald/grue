@@ -957,8 +957,8 @@
    :ldesc   "This is a long and narrow passage, which is cluttered with broken timbers. A wide passage comes from the east and turns at the west end of the room into a very narrow passageway. From the west comes a strong draft."
    :exits   {:east :ladder-bottom
              ;; ZIL: IF EMPTY-HANDED — player must carry nothing to fit through.
-             ;; TODO: implement :empty-handed condition (inventory check, not a world flag).
-             :west "You cannot fit through this passage with that load."}
+             ;; TODO: :empty-handed is a virtual flag (inventory check); set it in v-walk pre-move hook.
+             :west {:to :lower-shaft :if :empty-handed :else "You cannot fit through this passage with that load."}}
    :action  :no-objs
    :flags   #{:rlandbit :sacredbit}}
 
@@ -966,9 +966,9 @@
   {:desc    "Drafty Room"
    :ldesc   "This is a small drafty room in which is the bottom of a long shaft. To the south is a passageway and to the east a very narrow passage. In the shaft can be seen a heavy iron chain."
    :exits   {:south :machine-room
-             ;; ZIL: IF EMPTY-HANDED exits. TODO: implement inventory condition.
-             :out  "You cannot fit through this passage with that load."
-             :east "You cannot fit through this passage with that load."}
+             ;; ZIL: IF EMPTY-HANDED exits. TODO: :empty-handed is a virtual flag (inventory check).
+             :out  {:to :timber-room :if :empty-handed :else "You cannot fit through this passage with that load."}
+             :east {:to :timber-room :if :empty-handed :else "You cannot fit through this passage with that load."}}
    :action  :no-objs
    :flags   #{:rlandbit :sacredbit}}
 
