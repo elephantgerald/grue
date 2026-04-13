@@ -175,8 +175,9 @@
    :exits  {:west "The door is nailed shut."
             :east :kitchen
             :down {:to :cellar :if-open :trap-door}}
-   ;; Note: ZIL TRAP-DOOR-EXIT also requires RUG-MOVED; that check is
-   ;; enforced by living-room-fcn's M-BEG handler, not the exit map.
+   ;; TODO: ZIL uses a PER routine (TRAP-DOOR-EXIT, 1actions.zil:567) that gates descent
+   ;; on both RUG-MOVED and trap-door :openbit. Current exit only checks :openbit.
+   ;; RUG-MOVED gating not yet implemented (pending rug puzzle).
    :flags   #{:rlandbit :onbit :sacredbit}
    :globals #{:stairs}}
 
@@ -251,7 +252,9 @@
    :flags      #{:doorbit :ndescbit}
    :action     :kitchen-window-f}
 
-  ;; ZIL: "first obj so L.R. desc looks right"
+  ;; ZIL source note: trophy-case declared first so L.R. desc looks right.
+  ;; In this EDN file objects are a hash-map — declaration order has no effect.
+  ;; Comment preserved for ZIL fidelity reference only.
   :trophy-case
   {:location   :living-room
    :synonyms   #{:case}

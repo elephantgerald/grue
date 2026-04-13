@@ -36,7 +36,10 @@
   (get-in @world [:rooms room-key]))
 
 (defn get-object [obj-key]
-  (get-in @world [:objects obj-key]))
+  (let [obj (get-in @world [:objects obj-key])]
+    (when (nil? obj)
+      (throw (ex-info (str "Object not found in world: " obj-key) {:obj-key obj-key})))
+    obj))
 
 (defn objects-in [location-key]
   (filter (fn [[_ obj]] (= (:location obj) location-key))
@@ -53,6 +56,11 @@
 ;;; ZIL: SCORE-UPD — add n to both base-score and score.
 ;;; At 350 points (first time): set WON-FLAG, clear MAP :invisible, clear
 ;;; WEST-OF-HOUSE :touchbit, and print the endgame whisper (gverbs.zil:1855–1866).
+;;;
+;;; Two won-flag paths:
+;;;   won-flag atom       — guards against re-triggering this endgame block
+;;;   [:flags :won-flag]  — load-bearing for v-walk :if gates (e.g. :stone-barrow exit)
+;;; Both are set here and both are reset (atom explicitly; world implicitly via EDN reload).
 (defn score-upd [n]
   (swap! base-score + n)
   (swap! score + n)
@@ -113,7 +121,7 @@
 ;;; STONE-BARROW-FCN — M-LOOK handled by :ldesc; handler is for entering only
 (defmethod room-action :stone-barrow-fcn [_ _] nil)
 
-;;; KITCHEN-FCN — ZIL: ROUTINE KITCHEN-FCN (RARG) in 1actions.zil:385
+;;; KITCHEN-FCN — ZIL: ROUTINE KITCHEN-FCN (RARG) in 1actions.zil:385 (ZIL source is read-only)
 ;;; M-LOOK description interpolates kitchen-window state.
 (defmethod room-action :kitchen-fcn [_ msg]
   (when (= msg :m-look)
@@ -123,8 +131,9 @@
         (println "open.")
         (println "slightly ajar.")))))
 
-;;; LIVING-ROOM-FCN — ZIL: ROUTINE LIVING-ROOM-FCN (RARG) in 1actions.zil:449
+;;; LIVING-ROOM-FCN — ZIL: ROUTINE LIVING-ROOM-FCN (RARG) in 1actions.zil:449 (ZIL source is read-only)
 ;;; M-LOOK description varies based on rug-moved flag and trap-door openbit.
+;;; Note: ZIL M-LOOK also branches on MAGIC-FLAG (cyclops door text, 1actions.zil:453-458) — not yet implemented.
 (defmethod room-action :living-room-fcn [_ msg]
   (when (= msg :m-look)
     (let [rug-moved  @rug-moved
@@ -136,7 +145,7 @@
                  door-open                 "and an open trap door at your feet."
                  :else                     "and a large oriental rug in the center of the room.")))))
 
-;;; CELLAR-FCN — ZIL: ROUTINE CELLAR-FCN (RARG) in 1actions.zil:531
+;;; CELLAR-FCN — ZIL: ROUTINE CELLAR-FCN (RARG) in 1actions.zil:531 (ZIL source is read-only)
 ;;; M-LOOK: fixed description.
 ;;; M-ENTER: if trap-door was open and untouched, crash it shut (1actions.zil:537-543).
 (defmethod room-action :cellar-fcn [_ msg]
@@ -147,6 +156,8 @@
     :m-enter
     (let [trap (get-object :trap-door)]
       (when (and (flag? trap :openbit) (not (flag? trap :touchbit)))
+        ;; ZIL: FCLEAR TRAP-DOOR OPENBIT, FSET TRAP-DOOR TOUCHBIT (1actions.zil:540-541).
+        ;; Does NOT touch :invisible — that is cleared by the rug puzzle handler (RUG-FCN MOVE).
         (swap! world update-in [:objects :trap-door :flags] #(-> % (disj :openbit) (conj :touchbit)))
         (println "The trap door crashes shut, and you hear someone barring it.")
         (println)))
@@ -280,6 +291,7 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; ARRIVE! — called on entering a room via movement
+;;; Precondition: @here has already been updated to the destination room.
 ;;; Fires M-ENTER on the room action handler (side effects: trap-door close, etc.)
 ;;; then shows full or brief description depending on :touchbit.
 ;;; ---------------------------------------------------------------------------
@@ -460,18 +472,21 @@
       (string? exit)
       (println exit)
 
+      ;; ZIL GOTO order: M-ENTER → SCORE-OBJ → V-FIRST-LOOK (room description).
+      ;; arrive! combines M-ENTER and description, so score-obj fires after both.
+      ;; Exact ZIL order (whisper before description) would require splitting arrive!.
       (keyword? exit)
       (do (reset! here exit)
-          (score-obj exit)
           (arrive!)
+          (score-obj exit)
           :turn)
 
       ;; conditional on a global flag: {:to :room :if :flag}
       (and (map? exit) (:if exit))
       (if (get-in @world [:flags (:if exit)])
         (do (reset! here (:to exit))
-            (score-obj (:to exit))
             (arrive!)
+            (score-obj (:to exit))
             :turn)
         (println "You can't go that way."))
 
@@ -481,8 +496,8 @@
       (let [obj (get-object (:if-open exit))]
         (if (flag? obj :openbit)
           (do (reset! here (:to exit))
-              (score-obj (:to exit))
               (arrive!)
+              (score-obj (:to exit))
               :turn)
           ;; Invisible objects (e.g. trap door before rug is moved) don't
           ;; reveal themselves in the blocked message — ZIL falls through to

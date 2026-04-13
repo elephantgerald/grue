@@ -178,6 +178,9 @@
     (is (clojure.string/includes? out "The trap door is closed."))))
 
 (deftest living-room-to-cellar-when-trap-door-open
+  ;; Note: ZIL TRAP-DOOR-EXIT also requires RUG-MOVED (1actions.zil:567).
+  ;; rug-moved guard not yet implemented — this test will need updating
+  ;; when the rug puzzle is translated.
   (swap! z/world update-in [:objects :trap-door :flags] conj :openbit)
   (reset! z/here :living-room)
   (do! "go down")
@@ -188,6 +191,52 @@
   (reset! z/here :cellar)
   (do! "go up")
   (is (= :living-room @z/here)))
+
+(deftest cellar-up-blocked-when-trap-door-closed
+  ;; Simulate: rug moved (:invisible cleared), trap door opened, player descends.
+  ;; CELLAR-FCN M-ENTER closes the door (:openbit removed, :touchbit set).
+  ;; Going back up should be blocked with "The trap door is closed."
+  ;; Verified against DOSBox r88/840726
+  (swap! z/world update-in [:objects :trap-door :flags] #(-> % (disj :invisible) (conj :openbit)))
+  (reset! z/here :living-room)
+  (do! "go down")
+  (let [out (output-of #(do! "go up"))]
+    (is (clojure.string/includes? out "The trap door is closed."))
+    (is (= :cellar @z/here))))
+
+;;; ---------------------------------------------------------------------------
+;;; Lower room graph — exit traversal
+;;; ---------------------------------------------------------------------------
+
+(deftest cellar-to-troll-room
+  (reset! z/here :cellar)
+  (do! "go north")
+  (is (= :troll-room @z/here)))
+
+(deftest troll-room-to-cellar
+  (reset! z/here :troll-room)
+  (do! "go south")
+  (is (= :cellar @z/here)))
+
+(deftest cellar-to-east-of-chasm
+  (reset! z/here :cellar)
+  (do! "go south")
+  (is (= :east-of-chasm @z/here)))
+
+(deftest east-of-chasm-to-gallery
+  (reset! z/here :east-of-chasm)
+  (do! "go east")
+  (is (= :gallery @z/here)))
+
+(deftest gallery-to-studio
+  (reset! z/here :gallery)
+  (do! "go north")
+  (is (= :studio @z/here)))
+
+(deftest studio-to-gallery
+  (reset! z/here :studio)
+  (do! "go south")
+  (is (= :gallery @z/here)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Cellar M-ENTER — trap door closes automatically on entry
@@ -219,5 +268,38 @@
 (deftest map-starts-invisible
   (is (contains? (get-in @z/world [:objects :map :flags]) :invisible)))
 
+(deftest trap-door-starts-invisible
+  (is (contains? (get-in @z/world [:objects :trap-door :flags]) :invisible)))
+
 (deftest trophy-case-is-container
   (is (z/flag? (z/get-object :trophy-case) :contbit)))
+
+;;; ---------------------------------------------------------------------------
+;;; Blocked-string exits — rooms that produce a specific message
+;;; Consistent with around_house_test.clj pattern
+;;; ---------------------------------------------------------------------------
+
+(deftest living-room-west-blocked
+  (reset! z/here :living-room)
+  (let [out (output-of #(do! "go west"))]
+    (is (clojure.string/includes? out "The door is nailed shut."))))
+
+(deftest kitchen-down-blocked
+  (reset! z/here :kitchen)
+  (let [out (output-of #(do! "go down"))]
+    (is (clojure.string/includes? out "Only Santa Claus climbs down chimneys."))))
+
+(deftest cellar-west-blocked
+  (reset! z/here :cellar)
+  (let [out (output-of #(do! "go west"))]
+    (is (clojure.string/includes? out "You try to ascend the ramp, but it is impossible, and you slide back down."))))
+
+(deftest troll-room-east-blocked
+  (reset! z/here :troll-room)
+  (let [out (output-of #(do! "go east"))]
+    (is (clojure.string/includes? out "The troll fends you off with a menacing gesture."))))
+
+(deftest troll-room-west-blocked
+  (reset! z/here :troll-room)
+  (let [out (output-of #(do! "go west"))]
+    (is (clojure.string/includes? out "The troll fends you off with a menacing gesture."))))
