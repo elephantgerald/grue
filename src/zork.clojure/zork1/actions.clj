@@ -265,11 +265,15 @@
 ;;; Rooms with :ldesc print it directly. Rooms with :action call the handler.
 ;;; ---------------------------------------------------------------------------
 
+;;; ZIL priority: ndescbit suppresses always; ldesc beats fdesc; fdesc beats generic.
+;;; Note: ZIL also shows fdesc of open containers' contents — not yet implemented.
 (defn describe-objects []
   (doseq [[_ obj] (objects-in @here)]
-    (cond
-      (:ldesc obj)                (println (:ldesc obj))
-      (not (flag? obj :ndescbit)) (println (str "There is a " (:desc obj) " here.")))))
+    (when-not (flag? obj :ndescbit)
+      (cond
+        (:ldesc obj) (println (:ldesc obj))
+        (:fdesc obj) (println (:fdesc obj))
+        :else        (println (str "There is a " (:desc obj) " here."))))))
 
 (defn v-look []
   (swap! world update-in [:rooms @here :flags] conj :touchbit)

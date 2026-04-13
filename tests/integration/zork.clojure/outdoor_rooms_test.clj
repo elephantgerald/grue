@@ -47,13 +47,15 @@
 ;;; ---------------------------------------------------------------------------
 
 (deftest up-a-tree-look
-  ;; Nest shows as "There is a bird's nest here." — no :ldesc, no :ndescbit.
-  ;; Verified against frotz r88/840726 (nest was absent before objects were added).
+  ;; Nest shows its :fdesc — no :ldesc, no :ndescbit.
+  ;; The original also shows the egg's :fdesc through the open nest (container contents
+  ;; display is not yet implemented — known deviation).
+  ;; Verified against frotz r88/840726.
   (move-to! :up-a-tree)
   (is (= (str "Up a Tree\n"
               "You are about 10 feet above the ground nestled among some large "
               "branches. The nearest branch above you is above your reach.\n"
-              "There is a bird's nest here.")
+              "Beside you on the branch is a small bird's nest.")
          (game-output "look"))))
 
 (deftest up-a-tree-up-blocked
