@@ -222,7 +222,804 @@
    :ldesc "This appears to have been an artist's studio. The walls and floors are splattered with paints of 69 different colors. Strangely enough, nothing of value is hanging here. At the south end of the room is an open door (also covered with paint). A dark and narrow chimney leads up from a fireplace; although you might be able to get up it, it seems unlikely you could get back down."
    :exits {:south :gallery
            :up    "You can't get up there with what you're carrying."}
-   :flags #{:rlandbit}}}
+   :flags #{:rlandbit}}
+
+  ;; ── Maze ──────────────────────────────────────────────────────────────────
+
+  :maze-1
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:east  :troll-room
+           :north :maze-1
+           :south :maze-2
+           :west  :maze-4}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-2
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:south :maze-1
+           ;; ZIL: (DOWN PER MAZE-DIODES) — one-way exit to maze-4.
+           ;; TODO: MAZE-DIODES prints "You won't be able to get back up..." before moving.
+           :down  :maze-4
+           :east  :maze-3}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-3
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:west  :maze-2
+           :north :maze-4
+           :up    :maze-5}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-4
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:west  :maze-3
+           :north :maze-1
+           :east  :dead-end-1}
+   :flags #{:rlandbit :mazebit}}
+
+  :dead-end-1
+  {:desc  "Dead End"
+   :ldesc "You have come to a dead end in the maze."
+   :exits {:south :maze-4}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-5
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike.\nA skeleton, probably the remains of a luckless adventurer, lies here."
+   :exits {:east  :dead-end-2
+           :north :maze-3
+           :sw    :maze-6}
+   :flags #{:rlandbit :mazebit}}
+
+  :dead-end-2
+  {:desc  "Dead End"
+   :ldesc "You have come to a dead end in the maze."
+   :exits {:west :maze-5}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-6
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:down  :maze-5
+           :east  :maze-7
+           :west  :maze-6
+           :up    :maze-9}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-7
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:up    :maze-14
+           :west  :maze-6
+           ;; ZIL: (DOWN PER MAZE-DIODES) — one-way exit to dead-end-1.
+           :down  :dead-end-1
+           :east  :maze-8
+           :south :maze-15}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-8
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:ne   :maze-7
+           :west :maze-8
+           :se   :dead-end-3}
+   :flags #{:rlandbit :mazebit}}
+
+  :dead-end-3
+  {:desc  "Dead End"
+   :ldesc "You have come to a dead end in the maze."
+   :exits {:north :maze-8}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-9
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:north :maze-6
+           ;; ZIL: (DOWN PER MAZE-DIODES) — one-way exit to maze-11.
+           :down  :maze-11
+           :east  :maze-10
+           :south :maze-13
+           :west  :maze-12
+           :nw    :maze-9}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-10
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:east :maze-9
+           :west :maze-13
+           :up   :maze-11}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-11
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:ne   :grating-room
+           :down :maze-10
+           :nw   :maze-13
+           :sw   :maze-12}
+   :flags #{:rlandbit :mazebit}}
+
+  :grating-room
+  {:desc    "Grating Room"
+   :exits   {:sw :maze-11
+             :up {:to :grating-clearing :if-open :grate :else "The grating is closed."}}
+   :action  :maze-11-fcn
+   :globals #{:grate}
+   :flags   #{:rlandbit}}
+
+  :maze-12
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {;; ZIL: (DOWN PER MAZE-DIODES) — one-way exit to maze-5.
+           :down  :maze-5
+           :sw    :maze-11
+           :east  :maze-13
+           :up    :maze-9
+           :north :dead-end-4}
+   :flags #{:rlandbit :mazebit}}
+
+  :dead-end-4
+  {:desc  "Dead End"
+   :ldesc "You have come to a dead end in the maze."
+   :exits {:south :maze-12}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-13
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:east  :maze-9
+           :down  :maze-12
+           :south :maze-10
+           :west  :maze-11}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-14
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:west  :maze-15
+           :nw    :maze-14
+           :ne    :maze-7
+           :south :maze-7}
+   :flags #{:rlandbit :mazebit}}
+
+  :maze-15
+  {:desc  "Maze"
+   :ldesc "This is part of a maze of twisty little passages, all alike."
+   :exits {:west  :maze-14
+           :south :maze-7
+           :se    :cyclops-room}
+   :flags #{:rlandbit :mazebit}}
+
+  ;; ── Cyclops area ──────────────────────────────────────────────────────────
+
+  :cyclops-room
+  {:desc    "Cyclops Room"
+   :exits   {:nw   :maze-15
+             :east {:to :strange-passage :if :magic-flag :else "The east wall is solid rock."}
+             :up   {:to :treasure-room :if :cyclops-flag :else "The cyclops doesn't look like he'll let you past."}}
+   :action  :cyclops-room-fcn
+   :globals #{:stairs}
+   :flags   #{:rlandbit}}
+
+  :strange-passage
+  {:desc  "Strange Passage"
+   :ldesc "This is a long passage. To the west is one entrance. On the east there is an old wooden door, with a large opening in it (about cyclops sized)."
+   :exits {:west :cyclops-room
+           :in   :cyclops-room
+           :east :living-room}
+   :flags #{:rlandbit}}
+
+  :treasure-room
+  {:desc    "Treasure Room"
+   :ldesc   "This is a large room, whose east wall is solid granite. A number of discarded bags, which crumble at your touch, are scattered about on the floor. There is an exit down a staircase."
+   :exits   {:down :cyclops-room}
+   :action  :treasure-room-fcn
+   :globals #{:stairs}
+   :value   25
+   :flags   #{:rlandbit}}
+
+  ;; ── Reservoir and stream ──────────────────────────────────────────────────
+
+  :reservoir-south
+  {:desc    "Reservoir South"
+   :exits   {:se    :deep-canyon
+             :sw    :chasm-room
+             :east  :dam-room
+             :west  :stream-view
+             :north {:to :reservoir :if :low-tide :else "You would drown."}}
+   :action  :reservoir-south-fcn
+   :globals #{:global-water}
+   :flags   #{:rlandbit}}
+
+  :reservoir
+  {:desc    "Reservoir"
+   :exits   {:north :reservoir-north
+             :south :reservoir-south
+             :up    :in-stream
+             :west  :in-stream
+             :down  "The dam blocks your way."}
+   :action  :reservoir-fcn
+   :globals #{:global-water}
+   :flags   #{:nonlandbit}}
+
+  :reservoir-north
+  {:desc    "Reservoir North"
+   :exits   {:north :atlantis-room
+             :south {:to :reservoir :if :low-tide :else "You would drown."}}
+   :action  :reservoir-north-fcn
+   :globals #{:global-water :stairs}
+   :flags   #{:rlandbit}}
+
+  :stream-view
+  {:desc  "Stream View"
+   :ldesc "You are standing on a path beside a gently flowing stream. The path follows the stream, which flows from west to east."
+   :exits {:east :reservoir-south
+           :west "The stream emerges from a spot too small for you to enter."}
+   :globals #{:global-water}
+   :flags   #{:rlandbit}}
+
+  :in-stream
+  {:desc  "Stream"
+   :ldesc "You are on the gently flowing stream. The upstream route is too narrow to navigate, and the downstream route is invisible due to twisting walls. There is a narrow beach to land on."
+   :exits {:up   "The channel is too narrow."
+           :west "The channel is too narrow."
+           :land :stream-view
+           :down :reservoir
+           :east :reservoir}
+   :globals #{:global-water}
+   :flags   #{:nonlandbit}}
+
+  ;; ── Mirror rooms and vicinity ──────────────────────────────────────────────
+
+  :mirror-room-1
+  {:desc   "Mirror Room"
+   :exits  {:north :cold-passage
+            :west  :twisting-passage
+            :east  :small-cave}
+   :action :mirror-room
+   :flags  #{:rlandbit}}
+
+  :mirror-room-2
+  {:desc   "Mirror Room"
+   :exits  {:west  :winding-passage
+            :north :narrow-passage
+            :east  :tiny-cave}
+   :action :mirror-room
+   :flags  #{:rlandbit :onbit}}
+
+  :small-cave
+  {:desc  "Cave"
+   :ldesc "This is a tiny cave with entrances west and north, and a staircase leading down."
+   :exits {:north :mirror-room-1
+           :down  :atlantis-room
+           :south :atlantis-room
+           :west  :twisting-passage}
+   :globals #{:stairs}
+   :flags   #{:rlandbit}}
+
+  :tiny-cave
+  {:desc    "Cave"
+   :ldesc   "This is a tiny cave with entrances west and north, and a dark, forbidding staircase leading down."
+   :exits   {:north :mirror-room-2
+             :west  :winding-passage
+             :down  :entrance-to-hades}
+   :action  :cave2-room
+   :globals #{:stairs}
+   :flags   #{:rlandbit}}
+
+  :cold-passage
+  {:desc  "Cold Passage"
+   :ldesc "This is a cold and damp corridor where a long east-west passageway turns into a southward path."
+   :exits {:south :mirror-room-1
+           :west  :slide-room}
+   :flags #{:rlandbit}}
+
+  :narrow-passage
+  {:desc  "Narrow Passage"
+   :ldesc "This is a long and narrow corridor where a long north-south passageway briefly narrows even further."
+   :exits {:north :round-room
+           :south :mirror-room-2}
+   :flags #{:rlandbit}}
+
+  :winding-passage
+  {:desc  "Winding Passage"
+   :ldesc "This is a winding passage. It seems that there are only exits on the east and north."
+   :exits {:north :mirror-room-2
+           :east  :tiny-cave}
+   :flags #{:rlandbit}}
+
+  :twisting-passage
+  {:desc  "Twisting Passage"
+   :ldesc "This is a winding passage. It seems that there are only exits on the east and north."
+   :exits {:north :mirror-room-1
+           :east  :small-cave}
+   :flags #{:rlandbit}}
+
+  :atlantis-room
+  {:desc  "Atlantis Room"
+   :ldesc "This is an ancient room, long under water. There is an exit to the south and a staircase leading up."
+   :exits {:up    :small-cave
+           :south :reservoir-north}
+   :globals #{:stairs}
+   :flags   #{:rlandbit}}
+
+  ;; ── Round Room and vicinity ────────────────────────────────────────────────
+
+  :ew-passage
+  {:desc    "East-West Passage"
+   :ldesc   "This is a narrow east-west passageway. There is a narrow stairway leading down at the north end of the room."
+   :exits   {:east  :round-room
+             :west  :troll-room
+             :down  :chasm-room
+             :north :chasm-room}
+   :globals #{:stairs}
+   :value   5
+   :flags   #{:rlandbit}}
+
+  :round-room
+  {:desc  "Round Room"
+   :ldesc "This is a circular stone room with passages in all directions. Several of them have unfortunately been blocked by cave-ins."
+   :exits {:east  :loud-room
+           :west  :ew-passage
+           :north :ns-passage
+           :south :narrow-passage
+           :se    :engravings-cave}
+   :flags #{:rlandbit}}
+
+  :deep-canyon
+  {:desc    "Deep Canyon"
+   :exits   {:nw   :reservoir-south
+             :east :dam-room
+             :sw   :ns-passage
+             :down :loud-room}
+   :action  :deep-canyon-f
+   :globals #{:stairs}
+   :flags   #{:rlandbit}}
+
+  :damp-cave
+  {:desc  "Damp Cave"
+   :ldesc "This cave has exits to the west and east, and narrows to a crack toward the south. The earth is particularly damp here."
+   :exits {:west  :loud-room
+           :east  :white-cliffs-north
+           :south "It is too narrow for most insects."}
+   :globals #{:crack}
+   :flags   #{:rlandbit}}
+
+  :loud-room
+  {:desc    "Loud Room"
+   :exits   {:east :damp-cave
+             :west :round-room
+             :up   :deep-canyon}
+   :action  :loud-room-fcn
+   :globals #{:stairs}
+   :flags   #{:rlandbit}}
+
+  :ns-passage
+  {:desc  "North-South Passage"
+   :ldesc "This is a high north-south passage, which forks to the northeast."
+   :exits {:north :chasm-room
+           :ne    :deep-canyon
+           :south :round-room}
+   :flags #{:rlandbit}}
+
+  :chasm-room
+  {:desc  "Chasm"
+   :ldesc "A chasm runs southwest to northeast and the path follows it. You are on the south side of the chasm, where a crack opens into a passage."
+   :exits {:ne    :reservoir-south
+           :sw    :ew-passage
+           :up    :ew-passage
+           :south :ns-passage
+           :down  "Are you out of your mind?"}
+   :globals #{:crack :stairs}
+   :flags   #{:rlandbit}}
+
+  ;; ── Hades ─────────────────────────────────────────────────────────────────
+
+  :entrance-to-hades
+  {:desc    "Entrance to Hades"
+   :exits   {:up    :tiny-cave
+             :in    {:to :land-of-living-dead :if :lld-flag :else "Some invisible force prevents you from passing through the gate."}
+             :south {:to :land-of-living-dead :if :lld-flag :else "Some invisible force prevents you from passing through the gate."}}
+   :action  :lld-room
+   :globals #{:bodies}
+   :flags   #{:rlandbit :onbit}}
+
+  :land-of-living-dead
+  {:desc  "Land of the Dead"
+   :ldesc "You have entered the Land of the Living Dead. Thousands of lost souls can be heard weeping and moaning. In the corner are stacked the remains of dozens of previous adventurers less fortunate than yourself. A passage exits to the north."
+   :exits {:out   :entrance-to-hades
+           :north :entrance-to-hades}
+   :globals #{:bodies}
+   :flags   #{:rlandbit :onbit}}
+
+  ;; ── Dome, Temple, Egypt ────────────────────────────────────────────────────
+
+  :engravings-cave
+  {:desc  "Engravings Cave"
+   :ldesc "You have entered a low cave with passages leading northwest and east."
+   :exits {:nw   :round-room
+           :east :dome-room}
+   :flags #{:rlandbit}}
+
+  :egypt-room
+  {:desc    "Egyptian Room"
+   :ldesc   "This is a room which looks like an Egyptian tomb. There is an ascending staircase to the west."
+   :exits   {:west :north-temple
+             :up   :north-temple}
+   :globals #{:stairs}
+   :flags   #{:rlandbit}}
+
+  :dome-room
+  {:desc   "Dome Room"
+   :exits  {:west :engravings-cave
+            :down {:to :torch-room :if :dome-flag :else "You cannot go down without fracturing many bones."}}
+   :action :dome-room-fcn
+   :flags  #{:rlandbit}}
+
+  :torch-room
+  {:desc    "Torch Room"
+   :exits   {:up    "You cannot reach the rope."
+             :south :north-temple
+             :down  :north-temple}
+   :action  :torch-room-fcn
+   :globals #{:stairs}
+   :flags   #{:rlandbit}}
+
+  :north-temple
+  {:desc    "Temple"
+   :ldesc   "This is the north end of a large temple. On the east wall is an ancient inscription, probably a prayer in a long-forgotten language. Below the prayer is a staircase leading down. The west wall is solid granite. The exit to the north end of the room is through huge marble pillars."
+   :exits   {:down  :egypt-room
+             :east  :egypt-room
+             :north :torch-room
+             :out   :torch-room
+             :up    :torch-room
+             :south :south-temple}
+   :globals #{:stairs}
+   :flags   #{:rlandbit :onbit :sacredbit}}
+
+  :south-temple
+  {:desc   "Altar"
+   :ldesc  "This is the south end of a large temple. In front of you is what appears to be an altar. In one corner is a small hole in the floor which leads into darkness. You probably could not get back up it."
+   :exits  {:north :north-temple
+            :down  {:to :tiny-cave :if :coffin-cure :else "You haven't a prayer of getting the coffin down there."}}
+   :action :south-temple-fcn
+   :flags  #{:rlandbit :onbit :sacredbit}}
+
+  ;; ── Flood Control Dam #3 ──────────────────────────────────────────────────
+
+  :dam-room
+  {:desc    "Dam"
+   :exits   {:south :deep-canyon
+             :down  :dam-base
+             :east  :dam-base
+             :north :dam-lobby
+             :west  :reservoir-south}
+   :action  :dam-room-fcn
+   :globals #{:global-water}
+   :flags   #{:rlandbit :onbit}}
+
+  :dam-lobby
+  {:desc  "Dam Lobby"
+   :ldesc "This room appears to have been the waiting room for groups touring the dam. There are open doorways here to the north and east marked \"Private\", and there is a path leading south over the top of the dam."
+   :exits {:south :dam-room
+           :north :maintenance-room
+           :east  :maintenance-room}
+   :flags #{:rlandbit :onbit}}
+
+  :maintenance-room
+  {:desc  "Maintenance Room"
+   :ldesc "This is what appears to have been the maintenance room for Flood Control Dam #3. Apparently, this room has been ransacked recently, for most of the valuable equipment is gone. On the wall in front of you is a group of buttons colored blue, yellow, brown, and red. There are doorways to the west and south."
+   :exits {:south :dam-lobby
+           :west  :dam-lobby}
+   :flags #{:rlandbit}}
+
+  :dam-base
+  {:desc    "Dam Base"
+   :ldesc   "You are at the base of Flood Control Dam #3, which looms above you and to the north. The river Frigid is flowing by here. Along the river are the White Cliffs which seem to form giant walls stretching from north to south along the shores of the river as it winds its way downstream."
+   :exits   {:north :dam-room
+             :up    :dam-room}
+   :globals #{:global-water :river}
+   :flags   #{:rlandbit :onbit :sacredbit}}
+
+  ;; ── River area ────────────────────────────────────────────────────────────
+
+  :river-1
+  {:desc    "Frigid River"
+   :ldesc   "You are on the Frigid River in the vicinity of the Dam. The river flows quietly here. There is a landing on the west shore."
+   :exits   {:up   "You cannot go upstream due to strong currents."
+             :west :dam-base
+             :land :dam-base
+             :down :river-2
+             :east "The White Cliffs prevent your landing here."}
+   :globals #{:global-water :river}
+   :flags   #{:nonlandbit :sacredbit :onbit}}
+
+  :river-2
+  {:desc    "Frigid River"
+   :ldesc   "The river turns a corner here making it impossible to see the Dam. The White Cliffs loom on the east bank and large rocks prevent landing on the west."
+   :exits   {:up   "You cannot go upstream due to strong currents."
+             :down :river-3
+             :land "There is no safe landing spot here."
+             :east "The White Cliffs prevent your landing here."
+             :west "Just in time you steer away from the rocks."}
+   :globals #{:global-water :river}
+   :flags   #{:nonlandbit :sacredbit}}
+
+  :river-3
+  {:desc    "Frigid River"
+   :ldesc   "The river descends here into a valley. There is a narrow beach on the west shore below the cliffs. In the distance a faint rumbling can be heard."
+   :exits   {:up   "You cannot go upstream due to strong currents."
+             :down :river-4
+             :land :white-cliffs-north
+             :west :white-cliffs-north}
+   :globals #{:global-water :river}
+   :flags   #{:nonlandbit :sacredbit}}
+
+  :white-cliffs-north
+  {:desc    "White Cliffs Beach"
+   :ldesc   "You are on a narrow strip of beach which runs along the base of the White Cliffs. There is a narrow path heading south along the Cliffs and a tight passage leading west into the cliffs themselves."
+   :exits   {;; ZIL: IF DEFLATE — boat must be deflated to pass. TODO: implement :deflate-flag.
+             :south {:to :white-cliffs-south :if :deflate-flag :else "The path is too narrow."}
+             :west  {:to :damp-cave :if :deflate-flag :else "The path is too narrow."}}
+   :action  :white-cliffs-function
+   :globals #{:global-water :white-cliff :river}
+   :flags   #{:rlandbit :sacredbit}}
+
+  :white-cliffs-south
+  {:desc    "White Cliffs Beach"
+   :ldesc   "You are on a rocky, narrow strip of beach beside the Cliffs. A narrow path leads north along the shore."
+   :exits   {;; ZIL: IF DEFLATE — boat must be deflated to pass. TODO: implement :deflate-flag.
+             :north {:to :white-cliffs-north :if :deflate-flag :else "The path is too narrow."}}
+   :action  :white-cliffs-function
+   :globals #{:global-water :white-cliff :river}
+   :flags   #{:rlandbit :sacredbit}}
+
+  :river-4
+  {:desc    "Frigid River"
+   :ldesc   "The river is running faster here and the sound ahead appears to be that of rushing water. On the east shore is a sandy beach. A small area of beach can also be seen below the cliffs on the west shore."
+   :exits   {:up   "You cannot go upstream due to strong currents."
+             :down :river-5
+             :land "You can land either to the east or the west."
+             :west :white-cliffs-south
+             :east :sandy-beach}
+   :action  :rivr4-room
+   :globals #{:global-water :river}
+   :flags   #{:nonlandbit :sacredbit}}
+
+  :river-5
+  {:desc    "Frigid River"
+   :ldesc   "The sound of rushing water is nearly unbearable here. On the east shore is a large landing area."
+   :exits   {:up   "You cannot go upstream due to strong currents."
+             :east :shore
+             :land :shore}
+   :globals #{:global-water :river}
+   :flags   #{:nonlandbit :sacredbit :onbit}}
+
+  :shore
+  {:desc    "Shore"
+   :ldesc   "You are on the east shore of the river. The water here seems somewhat treacherous. A path travels from north to south here, the south end quickly turning around a sharp corner."
+   :exits   {:north :sandy-beach
+             :south :aragain-falls}
+   :globals #{:global-water :river}
+   :flags   #{:rlandbit :sacredbit :onbit}}
+
+  :sandy-beach
+  {:desc    "Sandy Beach"
+   :ldesc   "You are on a large sandy beach on the east shore of the river, which is flowing quickly by. A path runs beside the river to the south here, and a passage is partially buried in sand to the northeast."
+   :exits   {:ne    :sandy-cave
+             :south :shore}
+   :globals #{:global-water :river}
+   :flags   #{:rlandbit :sacredbit}}
+
+  :sandy-cave
+  {:desc  "Sandy Cave"
+   :ldesc "This is a sand-filled cave whose exit is to the southwest."
+   :exits {:sw :sandy-beach}
+   :flags #{:rlandbit}}
+
+  ;; ── Aragain Falls, Rainbow, Canyon ────────────────────────────────────────
+
+  :aragain-falls
+  {:desc    "Aragain Falls"
+   :exits   {:west  {:to :on-rainbow :if :rainbow-flag}
+             :down  "It's a long way..."
+             :north :shore
+             :up    {:to :on-rainbow :if :rainbow-flag}}
+   :action  :falls-room
+   :globals #{:global-water :river :rainbow}
+   :flags   #{:rlandbit :sacredbit :onbit}}
+
+  :on-rainbow
+  {:desc  "On the Rainbow"
+   :ldesc "You are on top of a rainbow (I bet you never thought you would walk on a rainbow), with a magnificent view of the Falls. The rainbow travels east-west here."
+   :exits {:west :end-of-rainbow
+           :east :aragain-falls}
+   :globals #{:rainbow}
+   :flags   #{:rlandbit :onbit :sacredbit}}
+
+  :end-of-rainbow
+  {:desc  "End of Rainbow"
+   :ldesc "You are on a small, rocky beach on the continuation of the Frigid River past the Falls. The beach is narrow due to the presence of the White Cliffs. The river canyon opens here and sunlight shines in from above. A rainbow crosses over the falls to the east and a narrow path continues to the southwest."
+   :exits {:up   {:to :on-rainbow :if :rainbow-flag}
+           :ne   {:to :on-rainbow :if :rainbow-flag}
+           :east {:to :on-rainbow :if :rainbow-flag}
+           :sw   :canyon-bottom}
+   :globals #{:global-water :rainbow :river}
+   :flags   #{:rlandbit :onbit}}
+
+  :canyon-bottom
+  {:desc    "Canyon Bottom"
+   :ldesc   "You are beneath the walls of the river canyon which may be climbable here. The lesser part of the runoff of Aragain Falls flows by below. To the north is a narrow path."
+   :exits   {:up    :cliff-middle
+             :north :end-of-rainbow}
+   :globals #{:global-water :climbable-cliff :river}
+   :flags   #{:rlandbit :onbit :sacredbit}}
+
+  :cliff-middle
+  {:desc  "Rocky Ledge"
+   :ldesc "You are on a ledge about halfway up the wall of the river canyon. You can see from here that the main flow from Aragain Falls twists along a passage which it is impossible for you to enter. Below you is the canyon bottom. Above you is more cliff, which appears climbable."
+   :exits {:up   :canyon-view
+           :down :canyon-bottom}
+   :globals #{:climbable-cliff :river}
+   :flags   #{:rlandbit :onbit :sacredbit}}
+
+  :canyon-view
+  {:desc    "Canyon View"
+   :ldesc   "You are at the top of the Great Canyon on its west wall. From here there is a marvelous view of the canyon and parts of the Frigid River upstream. Across the canyon, the walls of the White Cliffs join the mighty ramparts of the Flathead Mountains to the east. Following the Canyon upstream to the north, Aragain Falls may be seen, complete with rainbow. The mighty Frigid River flows out from a great dark cavern. To the west and south can be seen an immense forest, stretching for miles around. A path leads northwest. It is possible to climb down into the canyon from here."
+   :exits   {:east  :cliff-middle
+             :down  :cliff-middle
+             :nw    :clearing
+             :west  :forest-3
+             :south "Storm-tossed trees block your way."}
+   :action  :canyon-view-f
+   :globals #{:climbable-cliff :river :rainbow}
+   :flags   #{:rlandbit :onbit :sacredbit}}
+
+  ;; ── Coal mine area ────────────────────────────────────────────────────────
+
+  :mine-entrance
+  {:desc  "Mine Entrance"
+   :ldesc "You are standing at the entrance of what might have been a coal mine. The shaft enters the west wall, and there is another exit on the south end of the room."
+   :exits {:south :slide-room
+           :in    :squeeky-room
+           :west  :squeeky-room}
+   :flags #{:rlandbit}}
+
+  :squeeky-room
+  {:desc  "Squeaky Room"
+   :ldesc "You are in a small room. Strange squeaky sounds may be heard coming from the passage at the north end. You may also escape to the east."
+   :exits {:north :bat-room
+           :east  :mine-entrance}
+   :flags #{:rlandbit}}
+
+  :bat-room
+  {:desc   "Bat Room"
+   :exits  {:south :squeeky-room
+            :east  :shaft-room}
+   :action :bats-room
+   :flags  #{:rlandbit :sacredbit}}
+
+  :shaft-room
+  {:desc  "Shaft Room"
+   :ldesc "This is a large room, in the middle of which is a small shaft descending through the floor into darkness below. To the west and the north are exits from this room. Constructed over the top of the shaft is a metal framework to which a heavy iron chain is attached."
+   :exits {:down  "You wouldn't fit and would die if you could."
+           :west  :bat-room
+           :north :smelly-room}
+   :flags #{:rlandbit}}
+
+  :smelly-room
+  {:desc  "Smelly Room"
+   :ldesc "This is a small nondescript room. However, from the direction of a small descending staircase a foul odor can be detected. To the south is a narrow tunnel."
+   :exits {:down  :gas-room
+           :south :shaft-room}
+   :globals #{:stairs}
+   :flags   #{:rlandbit}}
+
+  :gas-room
+  {:desc    "Gas Room"
+   :ldesc   "This is a small room which smells strongly of coal gas. There is a short climb up some stairs and a narrow tunnel leading east."
+   :exits   {:up   :smelly-room
+             :east :mine-1}
+   :action  :boom-room
+   :globals #{:stairs}
+   :flags   #{:rlandbit :sacredbit}}
+
+  :ladder-top
+  {:desc  "Ladder Top"
+   :ldesc "This is a very small room. In the corner is a rickety wooden ladder, leading downward. It might be safe to descend. There is also a staircase leading upward."
+   :exits {:down :ladder-bottom
+           :up   :mine-4}
+   :globals #{:ladder :stairs}
+   :flags   #{:rlandbit}}
+
+  :ladder-bottom
+  {:desc  "Ladder Bottom"
+   :ldesc "This is a rather wide room. On one side is the bottom of a narrow wooden ladder. To the west and the south are passages leaving the room."
+   :exits {:south :dead-end-5
+           :west  :timber-room
+           :up    :ladder-top}
+   :globals #{:ladder}
+   :flags   #{:rlandbit}}
+
+  :dead-end-5
+  {:desc  "Dead End"
+   :ldesc "You have come to a dead end in the mine."
+   :exits {:north :ladder-bottom}
+   :flags #{:rlandbit}}
+
+  :timber-room
+  {:desc    "Timber Room"
+   :ldesc   "This is a long and narrow passage, which is cluttered with broken timbers. A wide passage comes from the east and turns at the west end of the room into a very narrow passageway. From the west comes a strong draft."
+   :exits   {:east :ladder-bottom
+             ;; ZIL: IF EMPTY-HANDED — player must carry nothing to fit through.
+             ;; TODO: implement :empty-handed condition (inventory check, not a world flag).
+             :west "You cannot fit through this passage with that load."}
+   :action  :no-objs
+   :flags   #{:rlandbit :sacredbit}}
+
+  :lower-shaft
+  {:desc    "Drafty Room"
+   :ldesc   "This is a small drafty room in which is the bottom of a long shaft. To the south is a passageway and to the east a very narrow passage. In the shaft can be seen a heavy iron chain."
+   :exits   {:south :machine-room
+             ;; ZIL: IF EMPTY-HANDED exits. TODO: implement inventory condition.
+             :out  "You cannot fit through this passage with that load."
+             :east "You cannot fit through this passage with that load."}
+   :action  :no-objs
+   :flags   #{:rlandbit :sacredbit}}
+
+  :machine-room
+  {:desc   "Machine Room"
+   :exits  {:north :lower-shaft}
+   :action :machine-room-fcn
+   :flags  #{:rlandbit}}
+
+  ;; ── Coal mine ─────────────────────────────────────────────────────────────
+
+  :mine-1
+  {:desc  "Coal Mine"
+   :ldesc "This is a nondescript part of a coal mine."
+   :exits {:north :gas-room
+           :east  :mine-1
+           :ne    :mine-2}
+   :flags #{:rlandbit}}
+
+  :mine-2
+  {:desc  "Coal Mine"
+   :ldesc "This is a nondescript part of a coal mine."
+   :exits {:north :mine-2
+           :south :mine-1
+           :se    :mine-3}
+   :flags #{:rlandbit}}
+
+  :mine-3
+  {:desc  "Coal Mine"
+   :ldesc "This is a nondescript part of a coal mine."
+   :exits {:south :mine-3
+           :sw    :mine-4
+           :east  :mine-2}
+   :flags #{:rlandbit}}
+
+  :mine-4
+  {:desc  "Coal Mine"
+   :ldesc "This is a nondescript part of a coal mine."
+   :exits {:north :mine-3
+           :west  :mine-4
+           :down  :ladder-top}
+   :flags #{:rlandbit}}
+
+  :slide-room
+  {:desc    "Slide Room"
+   :ldesc   "This is a small chamber, which appears to have been part of a coal mine. On the south wall of the chamber the letters \"Granite Wall\" are etched in the rock. To the east is a long passage, and there is a steep metal slide twisting downward. To the north is a small opening."
+   :exits   {:east  :cold-passage
+             :north :mine-entrance
+             :down  :cellar}
+   :globals #{:slide}
+   :flags   #{:rlandbit}}}
 
  :objects
  {:mailbox
@@ -271,6 +1068,13 @@
    :desc       "trap door"
    :flags      #{:doorbit :ndescbit :invisible}
    :action     :trap-door-fcn}
+
+  :grate
+  {:location   :local-globals
+   :synonyms   #{:grate :grating}
+   :desc       "grating"
+   :flags      #{:doorbit :ndescbit :invisible}
+   :action     :grate-function}
 
   :map
   {:location   :trophy-case
