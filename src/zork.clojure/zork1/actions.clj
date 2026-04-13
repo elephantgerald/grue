@@ -265,15 +265,21 @@
 ;;; Rooms with :ldesc print it directly. Rooms with :action call the handler.
 ;;; ---------------------------------------------------------------------------
 
-;;; ZIL priority: ndescbit or invisible suppresses always; ldesc beats fdesc; fdesc beats generic.
-;;; Note: ZIL also shows fdesc of open containers' contents — not yet implemented.
+;;; ZIL DESCRIBE-OBJECT priority (gverbs.zil:1693-1707):
+;;;   :invisible   → suppress always (object not visible)
+;;;   :fdesc       → show if object is untouched (no :touchbit) and not :ndescbit
+;;;   :ldesc       → show if present (not suppressed by :ndescbit)
+;;;   generic      → "There is a X here." if not :ndescbit
+;;; Note: ZIL also shows fdesc of open containers' contents — not yet implemented (#46).
 (defn describe-objects []
   (doseq [[_ obj] (objects-in @here)]
-    (when-not (or (flag? obj :ndescbit) (flag? obj :invisible))
+    (when-not (flag? obj :invisible)
       (cond
-        (:ldesc obj) (println (:ldesc obj))
-        (:fdesc obj) (println (:fdesc obj))
-        :else        (println (str "There is a " (:desc obj) " here."))))))
+        (and (:fdesc obj)
+             (not (flag? obj :touchbit))
+             (not (flag? obj :ndescbit))) (println (:fdesc obj))
+        (:ldesc obj)                      (println (:ldesc obj))
+        (not (flag? obj :ndescbit))       (println (str "There is a " (:desc obj) " here."))))))
 
 (defn v-look []
   (swap! world update-in [:rooms @here :flags] conj :touchbit)

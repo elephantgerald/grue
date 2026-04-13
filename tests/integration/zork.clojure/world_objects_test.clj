@@ -1,9 +1,16 @@
 (ns world-objects-test
   (:require [clojure.test :refer [deftest testing is use-fixtures]]
+            [clojure.string :as str]
             [zork1.actions :as z]))
 
 (defn reset-world! []
   (z/load-world!))
+
+(defn output-of [thunk]
+  (let [sw (java.io.StringWriter.)]
+    (binding [*out* sw]
+      (thunk))
+    (str/trim (str sw))))
 
 (use-fixtures :each (fn [f] (reset-world!) (f)))
 
@@ -177,3 +184,32 @@
 
 (deftest pot-of-gold-starts-invisible
   (is (contains? (:flags (z/get-object :pot-of-gold)) :invisible)))
+
+;;; ---------------------------------------------------------------------------
+;;; :invisible behavioral — invisible objects must not appear in look output
+;;; ---------------------------------------------------------------------------
+
+(deftest trunk-invisible-in-reservoir
+  (reset! z/here :reservoir)
+  (let [out (output-of z/v-look)]
+    (is (not (str/includes? out "trunk")))))
+
+(deftest thief-invisible-in-round-room
+  (reset! z/here :round-room)
+  (let [out (output-of z/v-look)]
+    (is (not (str/includes? out "thief")))))
+
+;;; ---------------------------------------------------------------------------
+;;; Lamp flags — must have both :takebit and :lightbit
+;;; ---------------------------------------------------------------------------
+
+(deftest lamp-has-lightbit
+  (let [obj (z/get-object :lamp)]
+    (is (contains? (:flags obj) :lightbit))))
+
+;;; ---------------------------------------------------------------------------
+;;; Rug — not takeable
+;;; ---------------------------------------------------------------------------
+
+(deftest rug-not-takeable
+  (is (not (contains? (:flags (z/get-object :rug)) :takebit))))
