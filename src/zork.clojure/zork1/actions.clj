@@ -481,17 +481,21 @@
           (score-obj exit)
           :turn)
 
-      ;; conditional on a global flag: {:to :room :if :flag}
+      ;; conditional on a global flag: {:to :room :if :flag [:else "msg"]}
+      ;; :else is optional — defaults to "You can't go that way."
       (and (map? exit) (:if exit))
       (if (get-in @world [:flags (:if exit)])
         (do (reset! here (:to exit))
             (arrive!)
             (score-obj (:to exit))
             :turn)
-        (println "You can't go that way."))
+        (println (or (:else exit) "You can't go that way.")))
 
-      ;; conditional on an object's :openbit: {:to :room :if-open :obj-key}
-      ;; on failure: "The [desc] is closed." — ZIL generates this from the object
+      ;; conditional on an object's :openbit: {:to :room :if-open :obj-key [:else "msg"]}
+      ;; on failure: :else string if present, else "The [desc] is closed."
+      ;; Invisible objects (e.g. trap door before rug is moved) don't
+      ;; reveal themselves in the blocked message — ZIL falls through to
+      ;; "You can't go that way."
       (and (map? exit) (:if-open exit))
       (let [obj (get-object (:if-open exit))]
         (if (flag? obj :openbit)
@@ -499,9 +503,6 @@
               (arrive!)
               (score-obj (:to exit))
               :turn)
-          ;; Invisible objects (e.g. trap door before rug is moved) don't
-          ;; reveal themselves in the blocked message — ZIL falls through to
-          ;; "You can't go that way."
           (if (flag? obj :invisible)
             (println "You can't go that way.")
-            (println (str "The " (:desc obj) " is closed."))))))))
+            (println (or (:else exit) (str "The " (:desc obj) " is closed.")))))))))
