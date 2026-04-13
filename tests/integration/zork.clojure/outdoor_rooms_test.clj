@@ -47,10 +47,13 @@
 ;;; ---------------------------------------------------------------------------
 
 (deftest up-a-tree-look
+  ;; Nest shows as "There is a bird's nest here." — no :ldesc, no :ndescbit.
+  ;; Verified against frotz r88/840726 (nest was absent before objects were added).
   (move-to! :up-a-tree)
   (is (= (str "Up a Tree\n"
               "You are about 10 feet above the ground nestled among some large "
-              "branches. The nearest branch above you is above your reach.")
+              "branches. The nearest branch above you is above your reach.\n"
+              "There is a bird's nest here.")
          (game-output "look"))))
 
 (deftest up-a-tree-up-blocked
@@ -68,10 +71,13 @@
 ;;; ---------------------------------------------------------------------------
 
 (deftest grating-clearing-look
+  ;; Leaves show their :ldesc when looking. Grate is :ndescbit so it doesn't appear.
+  ;; Verified against frotz r88/840726 (leaves were absent before objects were added).
   (move-to! :grating-clearing)
   (is (= (str "Clearing\n"
               "You are in a clearing, with a forest surrounding you on all sides. "
-              "A path leads south.")
+              "A path leads south.\n"
+              "On the ground is a pile of leaves.")
          (game-output "look"))))
 
 (deftest grating-clearing-north-blocked
