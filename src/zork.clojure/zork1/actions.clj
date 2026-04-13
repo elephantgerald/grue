@@ -265,11 +265,11 @@
 ;;; Rooms with :ldesc print it directly. Rooms with :action call the handler.
 ;;; ---------------------------------------------------------------------------
 
-;;; ZIL priority: ndescbit suppresses always; ldesc beats fdesc; fdesc beats generic.
+;;; ZIL priority: ndescbit or invisible suppresses always; ldesc beats fdesc; fdesc beats generic.
 ;;; Note: ZIL also shows fdesc of open containers' contents — not yet implemented.
 (defn describe-objects []
   (doseq [[_ obj] (objects-in @here)]
-    (when-not (flag? obj :ndescbit)
+    (when-not (or (flag? obj :ndescbit) (flag? obj :invisible))
       (cond
         (:ldesc obj) (println (:ldesc obj))
         (:fdesc obj) (println (:fdesc obj))

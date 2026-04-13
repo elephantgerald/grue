@@ -159,3 +159,21 @@
 
 (deftest grate-is-local-global
   (is (= :local-globals (:location (z/get-object :grate)))))
+
+;;; ---------------------------------------------------------------------------
+;;; :invisible flag — objects starting invisible must not auto-describe
+;;; ---------------------------------------------------------------------------
+
+(deftest trunk-starts-invisible
+  ;; trunk starts invisible and must not appear when looking in its room
+  (is (contains? (:flags (z/get-object :trunk)) :invisible)))
+
+(deftest thief-starts-invisible
+  ;; thief starts invisible and must not appear when looking in round-room
+  (is (contains? (:flags (z/get-object :thief)) :invisible)))
+
+(deftest scarab-starts-invisible
+  (is (contains? (:flags (z/get-object :scarab)) :invisible)))
+
+(deftest pot-of-gold-starts-invisible
+  (is (contains? (:flags (z/get-object :pot-of-gold)) :invisible)))
