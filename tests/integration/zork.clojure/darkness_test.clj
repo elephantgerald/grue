@@ -182,3 +182,97 @@
   (reset! z/here :west-of-house)
   (let [out (output-of z/tick-lamp!)]
     (is (= "" out))))
+
+;;; ---------------------------------------------------------------------------
+;;; v-lamp-on — ZIL V-LAMP-ON (gverbs.zil:786) + LANTERN (1actions.zil:2237)
+;;; ---------------------------------------------------------------------------
+
+(defn- setup-lamp-off-in-inventory! []
+  (swap! z/world update-in [:objects :lamp :location] (constantly :adventurer))
+  (swap! z/world update-in [:objects :lamp :flags] disj :onbit))
+
+(deftest lamp-on-lights-lamp
+  ;; Basic case: lamp in inventory, off → :onbit set, message printed, :turn returned
+  (reset! z/here :west-of-house)
+  (setup-lamp-off-in-inventory!)
+  (let [out (output-of #(is (= :turn (z/v-lamp-on :lamp))))]
+    (is (str/includes? out "The brass lantern is now on."))
+    (is (contains? (:flags (z/get-object :lamp)) :onbit))))
+
+(deftest lamp-on-resets-lamp-power
+  ;; v-lamp-on must reset lamp-power to 185 before setting :onbit (tick-lamp! contract)
+  (reset! z/here :west-of-house)
+  (setup-lamp-off-in-inventory!)
+  (z/v-lamp-on :lamp)
+  (is (= 185 @z/lamp-power)))
+
+(deftest lamp-on-already-on
+  ;; Lamp already has :onbit → "It is already on." — not a turn
+  (reset! z/here :west-of-house)
+  (setup-lamp-on-in-inventory!)
+  (let [out (output-of #(is (not (= :turn (z/v-lamp-on :lamp)))))]
+    (is (str/includes? out "It is already on."))))
+
+(deftest lamp-on-burned-out
+  ;; Lamp has :rmungbit → "A burned-out lamp won't light." — not a turn
+  (reset! z/here :west-of-house)
+  (swap! z/world update-in [:objects :lamp :location] (constantly :adventurer))
+  (swap! z/world update-in [:objects :lamp :flags] #(-> % (disj :onbit) (conj :rmungbit)))
+  (let [out (output-of #(is (not (= :turn (z/v-lamp-on :lamp)))))]
+    (is (str/includes? out "A burned-out lamp won't light."))))
+
+(deftest lamp-on-lights-dark-room
+  ;; Turning on lamp in a dark room triggers update-lit! and v-look (room desc shown)
+  (reset! z/here :cellar)
+  (setup-lamp-off-in-inventory!)
+  (z/update-lit!)  ; ensure @lit is false before lighting
+  (let [out (output-of #(z/v-lamp-on :lamp))]
+    (is (str/includes? out "You are in a dark and damp cellar"))))
+
+(deftest lamp-on-non-lightbit-object
+  ;; Object without :lightbit → "You can't turn that on."
+  (reset! z/here :west-of-house)
+  (let [out (output-of #(z/v-lamp-on :sword))]
+    (is (str/includes? out "You can't turn that on."))))
+
+;;; ---------------------------------------------------------------------------
+;;; v-lamp-off — ZIL V-LAMP-OFF (gverbs.zil:771) + LANTERN (1actions.zil:2243)
+;;; ---------------------------------------------------------------------------
+
+(deftest lamp-off-extinguishes-lamp
+  ;; Lamp on in inventory → :onbit cleared, message printed, :turn returned
+  (reset! z/here :west-of-house)
+  (setup-lamp-on-in-inventory!)
+  (z/update-lit!)
+  (let [out (output-of #(is (= :turn (z/v-lamp-off :lamp))))]
+    (is (str/includes? out "The brass lantern is now off."))
+    (is (not (contains? (:flags (z/get-object :lamp)) :onbit)))))
+
+(deftest lamp-off-already-off
+  ;; Lamp not :onbit → "It is already off." — not a turn
+  (reset! z/here :west-of-house)
+  (setup-lamp-off-in-inventory!)
+  (let [out (output-of #(is (not (= :turn (z/v-lamp-off :lamp)))))]
+    (is (str/includes? out "It is already off."))))
+
+(deftest lamp-off-burned-out
+  ;; Lamp has :rmungbit → "The lamp has already burned out." — not a turn
+  (reset! z/here :west-of-house)
+  (swap! z/world update-in [:objects :lamp :location] (constantly :adventurer))
+  (swap! z/world update-in [:objects :lamp :flags] #(-> % (disj :onbit) (conj :rmungbit)))
+  (let [out (output-of #(is (not (= :turn (z/v-lamp-off :lamp)))))]
+    (is (str/includes? out "The lamp has already burned out."))))
+
+(deftest lamp-off-now-dark
+  ;; Lamp off in underground room → room goes dark, "It is now pitch black."
+  (reset! z/here :cellar)
+  (setup-lamp-on-in-inventory!)
+  (z/update-lit!)
+  (let [out (output-of #(z/v-lamp-off :lamp))]
+    (is (str/includes? out "It is now pitch black."))))
+
+(deftest lamp-off-non-lightbit-object
+  ;; Object without :lightbit → "You can't turn that off."
+  (reset! z/here :west-of-house)
+  (let [out (output-of #(z/v-lamp-off :sword))]
+    (is (str/includes? out "You can't turn that off."))))

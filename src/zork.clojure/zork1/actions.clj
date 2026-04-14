@@ -22,7 +22,7 @@
 ;;; World loading
 ;;; ---------------------------------------------------------------------------
 
-(declare update-lit! score-upd)
+(declare update-lit! score-upd v-look)
 
 (defn load-world! []
   (reset! world (edn/read-string (slurp (io/resource "1dungeon.edn"))))
@@ -88,21 +88,19 @@
 ;;; ---------------------------------------------------------------------------
 ;;; Lamp fuel — ZIL: I-LANTERN interrupt (1actions.zil:2315)
 ;;; LAMP-TABLE: [100, msg, 70, msg, 15, msg, 0] — total 185 turns of light.
-;;; lamp-power counts down each turn the lamp is on; #14 sets it to 185 on lamp-on.
+;;; lamp-power counts down each turn the lamp is on; reset to 185 by v-lamp-on.
 ;;; ---------------------------------------------------------------------------
 
 (defn tick-lamp! []
   (let [lamp (get-object :lamp)]
     (when (and (flag? lamp :onbit) (not (flag? lamp :rmungbit)))
-      ;; lamp-power must be set to 185 by the lamp-on handler (#14) before :onbit is set.
+      ;; lamp-power is set to 185 by v-lamp-on before :onbit is set.
       ;; fnil dec 185 provides a safe fallback but should never trigger in normal play.
       (swap! lamp-power (fnil dec 185))
       (let [power    @lamp-power
             visible? (#{:adventurer @here} (:location lamp))]
         (cond
           (< power 0)
-          ;; TODO #14: lamp-on handler must (reset! lamp-power 185) before setting :onbit;
-          ;; lamp-power is not reset here, so it will be negative after burnout.
           (do (swap! world update-in [:objects :lamp :flags] disj :onbit)
               (swap! world update-in [:objects :lamp :flags] conj :rmungbit)
               (update-lit!)
@@ -111,6 +109,55 @@
           (= power 85) (when visible? (println "The lamp appears a bit dimmer."))
           (= power 15) (when visible? (println "The lamp is definitely dimmer now."))
           (= power 0)  (when visible? (println "The lamp is nearly out.")))))))
+
+;;; ---------------------------------------------------------------------------
+;;; V-LAMP-ON / V-LAMP-OFF — ZIL: gverbs.zil:786 / gverbs.zil:771
+;;; LANTERN object handler (1actions.zil:2237) is folded in here.
+;;; ---------------------------------------------------------------------------
+
+(defn v-lamp-on [obj-key]
+  (let [obj (get-object obj-key)]
+    (cond
+      (not (flag? obj :lightbit))
+      (if (flag? obj :burnbit)
+        (println (str "If you wish to burn the " (:desc obj) ", you should say so."))
+        (println "You can't turn that on."))
+
+      (flag? obj :rmungbit)
+      (println "A burned-out lamp won't light.")
+
+      (flag? obj :onbit)
+      (println "It is already on.")
+
+      :else
+      (do (reset! lamp-power 185)
+          (swap! world update-in [:objects obj-key :flags] conj :onbit)
+          (println (str "The " (:desc obj) " is now on."))
+          (when (not @lit)
+            (update-lit!)
+            (println)
+            (v-look))
+          :turn))))
+
+(defn v-lamp-off [obj-key]
+  (let [obj (get-object obj-key)]
+    (cond
+      (not (flag? obj :lightbit))
+      (println "You can't turn that off.")
+
+      (flag? obj :rmungbit)
+      (println "The lamp has already burned out.")
+
+      (not (flag? obj :onbit))
+      (println "It is already off.")
+
+      :else
+      (do (swap! world update-in [:objects obj-key :flags] disj :onbit)
+          (when @lit (update-lit!))
+          (println (str "The " (:desc obj) " is now off."))
+          (when (not @lit)
+            (println "It is now pitch black."))
+          :turn))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; SCORE-UPD / SCORE-OBJ — ZIL: ROUTINE SCORE-UPD / ROUTINE SCORE-OBJ
