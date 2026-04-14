@@ -120,7 +120,11 @@
 ;;; ---------------------------------------------------------------------------
 
 (deftest cellar-description
+  ;; Cellar is dark — give player a lit lamp so the description is visible.
   (reset! z/here :cellar)
+  (swap! z/world update-in [:objects :lamp :location] (constantly :adventurer))
+  (swap! z/world update-in [:objects :lamp :flags] conj :onbit)
+  (z/update-lit!)
   (let [out (output-of z/v-look)]
     (is (clojure.string/includes? out "You are in a dark and damp cellar with a narrow passageway leading"))
     (is (clojure.string/includes? out "north, and a crawlway to the south."))))

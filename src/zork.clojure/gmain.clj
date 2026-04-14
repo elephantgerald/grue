@@ -81,7 +81,8 @@
       (reset! last-cmd cmd)
       (let [result (dispatch cmd)]
         (when (= result :turn)
-          (swap! actions/turns inc))
+          (swap! actions/turns inc)
+          (actions/tick-lamp!))
         result))))
 
 ;;; ---------------------------------------------------------------------------
