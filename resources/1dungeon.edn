@@ -1084,5 +1084,1046 @@
    :flags      #{:invisible :readbit :takebit}
    :fdesc      "In the trophy case is an ancient parchment which appears to be a map."
    :size       2
-   :text       "The map shows a forest with three clearings. The largest clearing contains a house. Three paths leave the large clearing. One of these paths, leading southwest, is marked \"To Stone Barrow.\""}}}
+   :text       "The map shows a forest with three clearings. The largest clearing contains a house. Three paths leave the large clearing. One of these paths, leading southwest, is marked \"To Stone Barrow.\""}
+
+  ;;; -------------------------------------------------------------------------
+  ;;; Scenery globals — IN LOCAL-GLOBALS (referenced by room :globals sets)
+  ;;; -------------------------------------------------------------------------
+
+  :board
+  {:location   :local-globals
+   :synonyms   #{:boards :board}
+   :desc       "board"
+   :flags      #{:ndescbit}
+   :action     :board-f}
+
+  :songbird
+  {:location   :local-globals
+   :synonyms   #{:bird :songbird}
+   :adjectives #{:song}
+   :desc       "songbird"
+   :flags      #{:ndescbit}
+   :action     :songbird-f}
+
+  :white-house
+  {:location   :local-globals
+   :synonyms   #{:house}
+   :adjectives #{:white :beauti :coloni}
+   :desc       "white house"
+   :flags      #{:ndescbit}
+   :action     :white-house-f}
+
+  :forest
+  {:location   :local-globals
+   :synonyms   #{:forest :trees :pines :hemlocks}
+   :desc       "forest"
+   :flags      #{:ndescbit}
+   :action     :forest-f}
+
+  :tree
+  {:location   :local-globals
+   :synonyms   #{:tree :branch}
+   :adjectives #{:large :storm}
+   :desc       "tree"
+   :flags      #{:ndescbit :climbbit}}
+
+  :global-water
+  {:location   :local-globals
+   :synonyms   #{:water :quantity}
+   :desc       "water"
+   :flags      #{:drinkbit}
+   :action     :water-f}
+
+  :chimney
+  {:location   :local-globals
+   :synonyms   #{:chimney}
+   :adjectives #{:dark :narrow}
+   :desc       "chimney"
+   :flags      #{:climbbit :ndescbit}
+   :action     :chimney-f}
+
+  :boarded-window
+  {:location   :local-globals
+   :synonyms   #{:window}
+   :adjectives #{:boarded}
+   :desc       "boarded window"
+   :flags      #{:ndescbit}
+   :action     :boarded-window-fcn}
+
+  :slide
+  {:location   :local-globals
+   :synonyms   #{:chute :ramp :slide}
+   :adjectives #{:steep :metal :twisting}
+   :desc       "chute"
+   :flags      #{:climbbit}
+   :action     :slide-function}
+
+  :ladder
+  {:location   :local-globals
+   :synonyms   #{:ladder}
+   :adjectives #{:wooden :rickety :narrow}
+   :desc       "wooden ladder"
+   :flags      #{:ndescbit :climbbit}}
+
+  :rainbow
+  {:location   :local-globals
+   :synonyms   #{:rainbow}
+   :desc       "rainbow"
+   :flags      #{:ndescbit :climbbit}
+   :action     :rainbow-fcn}
+
+  :river
+  {:location   :local-globals
+   :synonyms   #{:river}
+   :adjectives #{:frigid}
+   :desc       "river"
+   :flags      #{:ndescbit}
+   :action     :river-function}
+
+  :bodies
+  {:location   :local-globals
+   :synonyms   #{:bodies :body :remains :pile}
+   :adjectives #{:mangled}
+   :desc       "pile of bodies"
+   :flags      #{:ndescbit :trytakebit}
+   :action     :body-function}
+
+  :crack
+  {:location   :local-globals
+   :synonyms   #{:crack}
+   :adjectives #{:narrow}
+   :desc       "crack"
+   :flags      #{:ndescbit}
+   :action     :crack-fcn}
+
+  :climbable-cliff
+  {:location   :local-globals
+   :synonyms   #{:wall :cliff :walls :ledge}
+   :adjectives #{:rocky :sheer}
+   :desc       "cliff"
+   :flags      #{:ndescbit :climbbit}
+   :action     :cliff-object}
+
+  :white-cliff
+  {:location   :local-globals
+   :synonyms   #{:cliff :cliffs}
+   :adjectives #{:white}
+   :desc       "white cliffs"
+   :flags      #{:ndescbit :climbbit}
+   :action     :wclif-object}
+
+  ;;; -------------------------------------------------------------------------
+  ;;; Scenery globals — IN GLOBAL-OBJECTS (always available everywhere)
+  ;;; -------------------------------------------------------------------------
+
+  :teeth
+  {:location   :global-objects
+   :synonyms   #{:overboard :teeth}
+   :desc       "set of teeth"
+   :flags      #{:ndescbit}
+   :action     :teeth-f}
+
+  :wall
+  {:location   :global-objects
+   :synonyms   #{:wall :walls}
+   :adjectives #{:surrounding}
+   :desc       "surrounding wall"}
+
+  :granite-wall
+  {:location   :global-objects
+   :synonyms   #{:wall}
+   :adjectives #{:granite}
+   :desc       "granite wall"
+   :action     :granite-wall-f}
+
+  ;;; -------------------------------------------------------------------------
+  ;;; House objects
+  ;;; -------------------------------------------------------------------------
+
+  :water
+  {:location   :bottle
+   :synonyms   #{:water :quantity :liquid :h2o}
+   :desc       "quantity of water"
+   :flags      #{:trytakebit :takebit :drinkbit}
+   :size       4
+   :action     :water-f}
+
+  :kitchen-table
+  {:location   :kitchen
+   :synonyms   #{:table}
+   :adjectives #{:kitchen}
+   :desc       "kitchen table"
+   :flags      #{:ndescbit :contbit :openbit :surfacebit}
+   :capacity   50}
+
+  :attic-table
+  {:location   :attic
+   :synonyms   #{:table}
+   :desc       "table"
+   :flags      #{:ndescbit :contbit :openbit :surfacebit}
+   :capacity   40}
+
+  :sandwich-bag
+  {:location   :kitchen-table
+   :synonyms   #{:bag :sack}
+   :adjectives #{:brown :elongated :smelly}
+   :desc       "brown sack"
+   :flags      #{:takebit :contbit :burnbit}
+   :fdesc      "On the table is an elongated brown sack, smelling of hot peppers."
+   :capacity   9
+   :size       9
+   :action     :sandwich-bag-fcn}
+
+  :lunch
+  {:location   :sandwich-bag
+   :synonyms   #{:food :sandwich :lunch :dinner}
+   :adjectives #{:hot :pepper}
+   :desc       "lunch"
+   :flags      #{:takebit :foodbit}
+   :ldesc      "A hot pepper sandwich is here."}
+
+  :garlic
+  {:location   :sandwich-bag
+   :synonyms   #{:garlic :clove}
+   :desc       "clove of garlic"
+   :flags      #{:takebit :foodbit}
+   :size       4
+   :action     :garlic-f}
+
+  :bottle
+  {:location   :kitchen-table
+   :synonyms   #{:bottle :container}
+   :adjectives #{:clear :glass}
+   :desc       "glass bottle"
+   :flags      #{:takebit :transbit :contbit}
+   :fdesc      "A bottle is sitting on the table."
+   :capacity   4
+   :action     :bottle-function}
+
+  :rug
+  {:location   :living-room
+   :synonyms   #{:rug :carpet}
+   :adjectives #{:large :oriental}
+   :desc       "carpet"
+   :flags      #{:ndescbit :trytakebit}
+   :action     :rug-fcn}
+
+  :wooden-door
+  {:location   :living-room
+   :synonyms   #{:door :lettering :writing}
+   :adjectives #{:wooden :gothic :strange :west}
+   :desc       "wooden door"
+   :flags      #{:readbit :doorbit :ndescbit :transbit}
+   :text       "The engravings translate to \"This space intentionally left blank.\""
+   :action     :front-door-fcn}
+
+  :sword
+  {:location   :living-room
+   :synonyms   #{:sword :orcrist :glamdring :blade}
+   :adjectives #{:elvish :old :antique}
+   :desc       "sword"
+   :flags      #{:takebit :weaponbit :trytakebit}
+   :fdesc      "Above the trophy case hangs an elvish sword of great antiquity."
+   :size       30
+   :tvalue     0
+   :action     :sword-fcn}
+
+  :lamp
+  {:location   :living-room
+   :synonyms   #{:lamp :lantern :light}
+   :adjectives #{:brass}
+   :desc       "brass lantern"
+   :flags      #{:takebit :lightbit}
+   :fdesc      "A battery-powered brass lantern is on the trophy case."
+   :ldesc      "There is a brass lantern (battery-powered) here."
+   :size       15
+   :action     :lantern}
+
+  :rope
+  {:location   :attic
+   :synonyms   #{:rope :hemp :coil}
+   :adjectives #{:large}
+   :desc       "rope"
+   :flags      #{:takebit :sacredbit :trytakebit}
+   :fdesc      "A large coil of rope is lying in the corner."
+   :size       10
+   :action     :rope-function}
+
+  :knife
+  {:location   :attic-table
+   :synonyms   #{:knives :knife :blade}
+   :adjectives #{:nasty :unrusty}
+   :desc       "nasty knife"
+   :flags      #{:takebit :weaponbit :trytakebit}
+   :fdesc      "On a table is a nasty-looking knife."
+   :action     :knife-f}
+
+  :front-door
+  {:location   :west-of-house
+   :synonyms   #{:door}
+   :adjectives #{:front :boarded}
+   :desc       "door"
+   :flags      #{:doorbit :ndescbit}
+   :action     :front-door-fcn}
+
+  :barrow-door
+  {:location   :stone-barrow
+   :synonyms   #{:door}
+   :adjectives #{:huge :stone}
+   :desc       "stone door"
+   :flags      #{:doorbit :ndescbit :openbit}
+   :action     :barrow-door-fcn}
+
+  :barrow
+  {:location   :stone-barrow
+   :synonyms   #{:barrow :tomb}
+   :adjectives #{:massive :stone}
+   :desc       "stone barrow"
+   :flags      #{:ndescbit}
+   :action     :barrow-fcn}
+
+  ;;; -------------------------------------------------------------------------
+  ;;; NPCs
+  ;;; -------------------------------------------------------------------------
+
+  :troll
+  {:location   :troll-room
+   :synonyms   #{:troll}
+   :adjectives #{:nasty}
+   :desc       "troll"
+   :flags      #{:actorbit :openbit :trytakebit}
+   :ldesc      "A nasty-looking troll, brandishing a bloody axe, blocks all passages\nout of the room."
+   :strength   2
+   :action     :troll-fcn}
+
+  :thief
+  {:location   :round-room
+   :synonyms   #{:thief :robber :man :person}
+   :adjectives #{:shady :suspicious :seedy}
+   :desc       "thief"
+   :flags      #{:actorbit :invisible :contbit :openbit :trytakebit}
+   :ldesc      "There is a suspicious-looking individual, holding a large bag, leaning\nagainst one wall. He is armed with a deadly stiletto."
+   :strength   5
+   :action     :robber-function}
+
+  :cyclops
+  {:location   :cyclops-room
+   :synonyms   #{:cyclops :monster :eye}
+   :adjectives #{:hungry :giant}
+   :desc       "cyclops"
+   :flags      #{:actorbit :ndescbit :trytakebit}
+   :strength   10000
+   :action     :cyclops-fcn}
+
+  :ghosts
+  {:location   :entrance-to-hades
+   :synonyms   #{:ghosts :spirits :fiends :force}
+   :adjectives #{:invisible :evil}
+   :desc       "number of ghosts"
+   :flags      #{:actorbit :ndescbit}
+   :action     :ghosts-f}
+
+  :bat
+  {:location   :bat-room
+   :synonyms   #{:bat :vampire}
+   :adjectives #{:vampire :deranged}
+   :desc       "bat"
+   :flags      #{:actorbit :trytakebit}
+   :descfcn    :bat-d
+   :action     :bat-f}
+
+  ;;; -------------------------------------------------------------------------
+  ;;; Dungeon objects and fixtures
+  ;;; -------------------------------------------------------------------------
+
+  :axe
+  {:location   :troll
+   :synonyms   #{:axe :ax}
+   :adjectives #{:bloody}
+   :desc       "bloody axe"
+   :flags      #{:weaponbit :trytakebit :takebit :ndescbit}
+   :size       25
+   :action     :axe-f}
+
+  :large-bag
+  {:location   :thief
+   :synonyms   #{:bag}
+   :adjectives #{:large :thiefs}
+   :desc       "large bag"
+   :flags      #{:trytakebit :ndescbit}
+   :action     :large-bag-f}
+
+  :stiletto
+  {:location   :thief
+   :synonyms   #{:stiletto}
+   :adjectives #{:vicious}
+   :desc       "stiletto"
+   :flags      #{:weaponbit :trytakebit :takebit :ndescbit}
+   :size       10
+   :action     :stiletto-function}
+
+  :bones
+  {:location   :maze-5
+   :synonyms   #{:bones :skeleton :body}
+   :desc       "skeleton"
+   :flags      #{:trytakebit :ndescbit}
+   :action     :skeleton}
+
+  :burned-out-lantern
+  {:location   :maze-5
+   :synonyms   #{:lantern :lamp}
+   :adjectives #{:rusty :burned :dead :useless}
+   :desc       "burned-out lantern"
+   :flags      #{:takebit}
+   :fdesc      "The deceased adventurer's useless lantern is here."
+   :size       20}
+
+  :rusty-knife
+  {:location   :maze-5
+   :synonyms   #{:knives :knife}
+   :adjectives #{:rusty}
+   :desc       "rusty knife"
+   :flags      #{:takebit :trytakebit :weaponbit :toolbit}
+   :fdesc      "Beside the skeleton is a rusty knife."
+   :size       20
+   :action     :rusty-knife-fcn}
+
+  :keys
+  {:location   :maze-5
+   :synonyms   #{:key}
+   :adjectives #{:skeleton}
+   :desc       "skeleton key"
+   :flags      #{:takebit :toolbit}
+   :size       10}
+
+  :lowered-basket
+  {:location   :lower-shaft
+   :synonyms   #{:cage :dumbwaiter :basket}
+   :adjectives #{:lowered}
+   :desc       "basket"
+   :ldesc      "From the chain is suspended a basket."
+   :flags      #{:trytakebit}
+   :action     :basket-f}
+
+  :raised-basket
+  {:location   :shaft-room
+   :synonyms   #{:cage :dumbwaiter :basket}
+   :desc       "basket"
+   :ldesc      "At the end of the chain is a basket."
+   :flags      #{:transbit :trytakebit :contbit :openbit}
+   :capacity   50
+   :action     :basket-f}
+
+  :bell
+  {:location   :north-temple
+   :synonyms   #{:bell}
+   :adjectives #{:small :brass}
+   :desc       "brass bell"
+   :flags      #{:takebit}
+   :action     :bell-f}
+
+  :hot-bell
+  {:synonyms   #{:bell}
+   :adjectives #{:brass :hot :red :small}
+   :desc       "red hot brass bell"
+   :flags      #{:trytakebit}
+   :ldesc      "On the ground is a red hot bell."
+   :action     :hot-bell-f}
+
+  :altar
+  {:location   :south-temple
+   :synonyms   #{:altar}
+   :desc       "altar"
+   :flags      #{:ndescbit :surfacebit :contbit :openbit}
+   :capacity   50}
+
+  :book
+  {:location   :altar
+   :synonyms   #{:book :prayer :page :books}
+   :adjectives #{:large :black}
+   :desc       "black book"
+   :flags      #{:readbit :takebit :contbit :burnbit :turnbit}
+   :fdesc      "On the altar is a large black book, open to page 569."
+   :size       10
+   :text       "Commandment #12592\n\nOh ye who go about saying unto each:  \"Hello sailor\":\nDost thou know the magnitude of thy sin before the gods?\nYea, verily, thou shalt be ground between two stones.\nShall the angry gods cast thy body into the whirlpool?\nSurely, thy eye shall be put out with a sharp stick!\nEven unto the ends of the earth shalt thou wander and\nbe reviled, for thou hast loosed the sacred words upon the world."
+   :action     :black-book}
+
+  :broken-lamp
+  {:synonyms   #{:lamp :lantern}
+   :adjectives #{:broken}
+   :desc       "broken lantern"
+   :flags      #{:takebit}}
+
+  :sceptre
+  {:location   :coffin
+   :synonyms   #{:sceptre :scepter :treasure}
+   :adjectives #{:sharp :egyptian :ancient :enameled}
+   :desc       "sceptre"
+   :flags      #{:takebit :weaponbit}
+   :ldesc      "An ornamented sceptre, tapering to a sharp point, is here."
+   :fdesc      "A sceptre, possibly that of ancient Egypt itself, is in the coffin. The\nsceptre is ornamented with colored enamel, and tapers to a sharp point."
+   :size       3
+   :value      4
+   :tvalue     6
+   :action     :sceptre-function}
+
+  :timbers
+  {:location   :timber-room
+   :synonyms   #{:timbers :pile}
+   :adjectives #{:wooden :broken}
+   :desc       "broken timber"
+   :flags      #{:takebit}
+   :size       50}
+
+  :pedestal
+  {:location   :torch-room
+   :synonyms   #{:pedestal}
+   :adjectives #{:white :marble}
+   :desc       "pedestal"
+   :flags      #{:ndescbit :contbit :openbit :surfacebit}
+   :capacity   30
+   :action     :dumb-container}
+
+  :tool-chest
+  {:location   :maintenance-room
+   :synonyms   #{:chest :chests :group :toolchests}
+   :adjectives #{:tool}
+   :desc       "group of tool chests"
+   :flags      #{:contbit :openbit :trytakebit :sacredbit}
+   :action     :tool-chest-fcn}
+
+  :yellow-button
+  {:location   :maintenance-room
+   :synonyms   #{:button :switch}
+   :adjectives #{:yellow}
+   :desc       "yellow button"
+   :flags      #{:ndescbit}
+   :action     :button-f}
+
+  :brown-button
+  {:location   :maintenance-room
+   :synonyms   #{:button :switch}
+   :adjectives #{:brown}
+   :desc       "brown button"
+   :flags      #{:ndescbit}
+   :action     :button-f}
+
+  :red-button
+  {:location   :maintenance-room
+   :synonyms   #{:button :switch}
+   :adjectives #{:red}
+   :desc       "red button"
+   :flags      #{:ndescbit}
+   :action     :button-f}
+
+  :blue-button
+  {:location   :maintenance-room
+   :synonyms   #{:button :switch}
+   :adjectives #{:blue}
+   :desc       "blue button"
+   :flags      #{:ndescbit}
+   :action     :button-f}
+
+  :machine
+  {:location   :machine-room
+   :synonyms   #{:machine :pdp10 :dryer :lid}
+   :desc       "machine"
+   :flags      #{:contbit :ndescbit :trytakebit}
+   :capacity   50
+   :action     :machine-f}
+
+  :machine-switch
+  {:location   :machine-room
+   :synonyms   #{:switch}
+   :desc       "switch"
+   :flags      #{:ndescbit :turnbit}
+   :action     :mswitch-function}
+
+  :wrench
+  {:location   :maintenance-room
+   :synonyms   #{:wrench :tool :tools}
+   :desc       "wrench"
+   :flags      #{:takebit :toolbit}
+   :size       10}
+
+  :screwdriver
+  {:location   :maintenance-room
+   :synonyms   #{:screwdriver :tool :tools :driver}
+   :adjectives #{:screw}
+   :desc       "screwdriver"
+   :flags      #{:takebit :toolbit}}
+
+  :match
+  {:location   :dam-lobby
+   :synonyms   #{:match :matches :matchbook}
+   :adjectives #{:match}
+   :desc       "matchbook"
+   :flags      #{:readbit :takebit}
+   :ldesc      "There is a matchbook whose cover says \"Visit Beautiful FCD#3\" here."
+   :size       2
+   :text       "\n(Close cover before striking)\n\nYOU too can make BIG MONEY in the exciting field of PAPER SHUFFLING!\n\nMr. Anderson of Muddle, Mass. says: \"Before I took this course I\nwas a lowly bit twiddler. Now with what I learned at GUE Tech\nI feel really important and can obfuscate and confuse with the best.\"\n\nDr. Blank had this to say: \"Ten short days ago all I could look\nforward to was a dead-end job as a doctor. Now I have a promising\nfuture and make really big Zorkmids.\"\n\nGUE Tech can't promise these fantastic results to everyone. But when\nyou earn your degree from GUE Tech, your future will be brighter."
+   :action     :match-function}
+
+  :guide
+  {:location   :dam-lobby
+   :synonyms   #{:guide :book :books :guidebooks}
+   :adjectives #{:tour :guide}
+   :desc       "tour guidebook"
+   :flags      #{:readbit :takebit :burnbit}
+   :fdesc      "Some guidebooks entitled \"Flood Control Dam #3\" are on the reception\ndesk."
+   :text       "\"	Flood Control Dam #3\n\nFCD#3 was constructed in year 783 of the Great Underground Empire to\nharness the mighty Frigid River. This work was supported by a grant of\n37 million zorkmids from your omnipotent local tyrant Lord Dimwit\nFlathead the Excessive. This impressive structure is composed of\n370,000 cubic feet of concrete, is 256 feet tall at the center, and 193\nfeet wide at the top. The lake created behind the dam has a volume\nof 1.7 billion cubic feet, an area of 12 million square feet, and a\nshore line of 36 thousand feet.\n\nThe construction of FCD#3 took 112 days from ground breaking to\nthe dedication. It required a work force of 384 slaves, 34 slave\ndrivers, 12 engineers, 2 turtle doves, and a partridge in a pear tree.\nFor this effort, a flood of 685 billion cubic feet was harnessed,\navoiding untold damage to the settlements in the Frigid River Basin.\""}
+
+  :pump
+  {:location   :reservoir-north
+   :synonyms   #{:pump :air-pump :tool :tools}
+   :adjectives #{:small :hand-held}
+   :desc       "hand-held air pump"
+   :flags      #{:takebit :toolbit}}
+
+  :leak
+  {:location   :maintenance-room
+   :synonyms   #{:leak :drip :pipe}
+   :desc       "leak"
+   :flags      #{:ndescbit :invisible}
+   :action     :leak-function}
+
+  :tube
+  {:location   :maintenance-room
+   :synonyms   #{:tube :tooth :paste}
+   :desc       "tube"
+   :flags      #{:takebit :contbit :readbit}
+   :ldesc      "There is an object which looks like a tube of toothpaste here."
+   :capacity   7
+   :size       5
+   :text       "---> Frobozz Magic Gunk Company <---\n  All-Purpose Gunk"
+   :action     :tube-function}
+
+  :putty
+  {:location   :tube
+   :synonyms   #{:material :gunk}
+   :adjectives #{:viscous}
+   :desc       "viscous material"
+   :flags      #{:takebit :toolbit}
+   :size       6
+   :action     :putty-fcn}
+
+  :bolt
+  {:location   :dam-room
+   :synonyms   #{:bolt :nut}
+   :adjectives #{:metal :large}
+   :desc       "bolt"
+   :flags      #{:ndescbit :turnbit :trytakebit}
+   :action     :bolt-f}
+
+  :bubble
+  {:location   :dam-room
+   :synonyms   #{:bubble}
+   :adjectives #{:small :green :plastic}
+   :desc       "green bubble"
+   :flags      #{:ndescbit :trytakebit}
+   :action     :bubble-f}
+
+  :dam
+  {:location   :dam-room
+   :synonyms   #{:dam :gate :gates}
+   :desc       "dam"
+   :flags      #{:ndescbit :trytakebit}
+   :action     :dam-function}
+
+  :control-panel
+  {:location   :dam-room
+   :synonyms   #{:panel}
+   :adjectives #{:control}
+   :desc       "control panel"
+   :flags      #{:ndescbit}}
+
+  :engravings
+  {:location   :engravings-cave
+   :synonyms   #{:wall :engravings :inscription}
+   :adjectives #{:old :ancient}
+   :desc       "wall with engravings"
+   :flags      #{:readbit :sacredbit}
+   :ldesc      "There are old engravings on the walls here."
+   :text       "The engravings were incised in the living rock of the cave wall by\nan unknown hand. They depict, in symbolic form, the beliefs of the\nancient Zorkers. Skillfully interwoven with the bas reliefs are excerpts\nillustrating the major religious tenets of that time. Unfortunately, a\nlater age seems to have considered them blasphemous and just as skillfully\nexcised them."}
+
+  :owners-manual
+  {:location   :studio
+   :synonyms   #{:manual :piece :paper}
+   :adjectives #{:zork :owners :small}
+   :desc       "ZORK owner's manual"
+   :flags      #{:readbit :takebit}
+   :fdesc      "Loosely attached to a wall is a small piece of paper."
+   :text       "Congratulations!\n\nYou are the privileged owner of ZORK I: The Great Underground Empire,\na self-contained and self-maintaining universe. If used and maintained\nin accordance with normal operating practices for small universes, ZORK\nwill provide many months of trouble-free operation."}
+
+  :mirror-1
+  {:location   :mirror-room-1
+   :synonyms   #{:reflection :mirror :enormous}
+   :desc       "mirror"
+   :flags      #{:trytakebit :ndescbit}
+   :action     :mirror-mirror}
+
+  :mirror-2
+  {:location   :mirror-room-2
+   :synonyms   #{:reflection :mirror :enormous}
+   :desc       "mirror"
+   :flags      #{:trytakebit :ndescbit}
+   :action     :mirror-mirror}
+
+  :prayer
+  {:location   :north-temple
+   :synonyms   #{:prayer :inscription}
+   :adjectives #{:ancient :old}
+   :desc       "prayer"
+   :flags      #{:readbit :sacredbit :ndescbit}
+   :text       "The prayer is inscribed in an ancient script, rarely used today. It seems\nto be a philippic against small insects, absent-mindedness, and the picking\nup and dropping of small objects. The final verse consigns trespassers to\nthe land of the dead. All evidence indicates that the beliefs of the ancient\nZorkers were obscure."}
+
+  :railing
+  {:location   :dome-room
+   :synonyms   #{:railing :rail}
+   :adjectives #{:wooden}
+   :desc       "wooden railing"
+   :flags      #{:ndescbit}}
+
+  :mountain-range
+  {:location   :mountains
+   :synonyms   #{:mountain :range}
+   :adjectives #{:impassable :flathead}
+   :desc       "mountain range"
+   :flags      #{:ndescbit :climbbit}
+   :action     :mountain-range-f}
+
+  ;;; -------------------------------------------------------------------------
+  ;;; Treasures
+  ;;; -------------------------------------------------------------------------
+
+  :chalice
+  {:location   :treasure-room
+   :synonyms   #{:chalice :cup :silver :treasure}
+   :adjectives #{:silver :engravings}
+   :desc       "chalice"
+   :flags      #{:takebit :trytakebit :contbit}
+   :ldesc      "There is a silver chalice, intricately engraved, here."
+   :capacity   5
+   :size       10
+   :value      10
+   :tvalue     5
+   :action     :chalice-fcn}
+
+  :trident
+  {:location   :atlantis-room
+   :synonyms   #{:trident :fork :treasure}
+   :adjectives #{:poseidon :own :crystal}
+   :desc       "crystal trident"
+   :flags      #{:takebit}
+   :fdesc      "On the shore lies Poseidon's own crystal trident."
+   :size       20
+   :value      4
+   :tvalue     11}
+
+  :coffin
+  {:location   :egypt-room
+   :synonyms   #{:coffin :casket :treasure}
+   :adjectives #{:solid :gold}
+   :desc       "gold coffin"
+   :flags      #{:takebit :contbit :sacredbit :searchbit}
+   :ldesc      "The solid-gold coffin used for the burial of Ramses II is here."
+   :capacity   35
+   :size       55
+   :value      10
+   :tvalue     15}
+
+  :diamond
+  {:synonyms   #{:diamond :treasure}
+   :adjectives #{:huge :enormous}
+   :desc       "huge diamond"
+   :flags      #{:takebit}
+   :ldesc      "There is an enormous diamond (perfectly cut) here."
+   :value      10
+   :tvalue     10}
+
+  :jade
+  {:location   :bat-room
+   :synonyms   #{:figurine :treasure}
+   :adjectives #{:exquisite :jade}
+   :desc       "jade figurine"
+   :flags      #{:takebit}
+   :ldesc      "There is an exquisite jade figurine here."
+   :size       10
+   :value      5
+   :tvalue     5}
+
+  :bag-of-coins
+  {:location   :maze-5
+   :synonyms   #{:bag :coins :treasure}
+   :adjectives #{:old :leather}
+   :desc       "leather bag of coins"
+   :flags      #{:takebit}
+   :ldesc      "An old leather bag, bulging with coins, is here."
+   :size       15
+   :value      10
+   :tvalue     5
+   :action     :bag-of-coins-f}
+
+  :emerald
+  {:location   :buoy
+   :synonyms   #{:emerald :treasure}
+   :adjectives #{:large}
+   :desc       "large emerald"
+   :flags      #{:takebit}
+   :value      5
+   :tvalue     10}
+
+  :painting
+  {:location   :gallery
+   :synonyms   #{:painting :art :canvas :treasure}
+   :adjectives #{:beauti}
+   :desc       "painting"
+   :flags      #{:takebit :burnbit}
+   :fdesc      "Fortunately, there is still one chance for you to be a vandal, for on\nthe far wall is a painting of unparalleled beauty."
+   :ldesc      "A painting by a neglected genius is here."
+   :size       15
+   :value      4
+   :tvalue     6
+   :action     :painting-fcn}
+
+  :skull
+  {:location   :land-of-living-dead
+   :synonyms   #{:skull :head :treasure}
+   :adjectives #{:crystal}
+   :desc       "crystal skull"
+   :fdesc      "Lying in one corner of the room is a beautifully carved crystal skull.\nIt appears to be grinning at you rather nastily."
+   :flags      #{:takebit}
+   :value      10
+   :tvalue     10}
+
+  :bar
+  {:location   :loud-room
+   :synonyms   #{:bar :platinum :treasure}
+   :adjectives #{:platinum :large}
+   :desc       "platinum bar"
+   :flags      #{:takebit :sacredbit}
+   :ldesc      "On the ground is a large platinum bar."
+   :size       20
+   :value      10
+   :tvalue     5}
+
+  :pot-of-gold
+  {:location   :end-of-rainbow
+   :synonyms   #{:pot :gold :treasure}
+   :adjectives #{:gold}
+   :desc       "pot of gold"
+   :flags      #{:takebit :invisible}
+   :fdesc      "At the end of the rainbow is a pot of gold."
+   :size       15
+   :value      10
+   :tvalue     10}
+
+  :bracelet
+  {:location   :gas-room
+   :synonyms   #{:bracelet :jewel :sapphire :treasure}
+   :adjectives #{:sapphire}
+   :desc       "sapphire-encrusted bracelet"
+   :flags      #{:takebit}
+   :size       10
+   :value      5
+   :tvalue     5}
+
+  :scarab
+  {:location   :sandy-cave
+   :synonyms   #{:scarab :bug :beetle :treasure}
+   :adjectives #{:beauti :carved :jeweled}
+   :desc       "beautiful jeweled scarab"
+   :flags      #{:takebit :invisible}
+   :size       8
+   :value      5
+   :tvalue     5}
+
+  :trunk
+  {:location   :reservoir
+   :synonyms   #{:trunk :chest :jewels :treasure}
+   :adjectives #{:old}
+   :desc       "trunk of jewels"
+   :flags      #{:takebit :invisible}
+   :fdesc      "Lying half buried in the mud is an old trunk, bulging with jewels."
+   :ldesc      "There is an old trunk here, bulging with assorted jewels."
+   :size       35
+   :value      15
+   :tvalue     5
+   :action     :trunk-f}
+
+  :candles
+  {:location   :south-temple
+   :synonyms   #{:candles :pair}
+   :adjectives #{:burning}
+   :desc       "pair of candles"
+   :flags      #{:takebit :flamebit :onbit :lightbit}
+   :fdesc      "On the two ends of the altar are burning candles."
+   :size       10
+   :action     :candles-fcn}
+
+  :torch
+  {:location   :pedestal
+   :synonyms   #{:torch :ivory :treasure}
+   :adjectives #{:flaming :ivory}
+   :desc       "torch"
+   :flags      #{:takebit :flamebit :onbit :lightbit}
+   :fdesc      "Sitting on the pedestal is a flaming torch, made of ivory."
+   :size       20
+   :value      14
+   :tvalue     6
+   :action     :torch-object}
+
+  :nest
+  {:location   :up-a-tree
+   :synonyms   #{:nest}
+   :adjectives #{:birds}
+   :desc       "bird's nest"
+   :flags      #{:takebit :burnbit :contbit :openbit :searchbit}
+   :fdesc      "Beside you on the branch is a small bird's nest."
+   :capacity   20}
+
+  :egg
+  {:location   :nest
+   :synonyms   #{:egg :treasure}
+   :adjectives #{:birds :encrusted :jeweled}
+   :desc       "jewel-encrusted egg"
+   :flags      #{:takebit :contbit :searchbit}
+   :fdesc      "In the bird's nest is a large egg encrusted with precious jewels,\napparently scavenged by a childless songbird. The egg is covered with\nfine gold inlay, and ornamented in lapis lazuli and mother-of-pearl.\nUnlike most eggs, this one is hinged and closed with a delicate looking\nclasp. The egg appears extremely fragile."
+   :value      5
+   :tvalue     5
+   :capacity   6
+   :action     :egg-object}
+
+  :canary
+  {:location   :egg
+   :synonyms   #{:canary :treasure}
+   :adjectives #{:clockwork :gold :golden}
+   :desc       "golden clockwork canary"
+   :flags      #{:takebit :searchbit}
+   :fdesc      "There is a golden clockwork canary nestled in the egg. It has ruby\neyes and a silver beak. Through a crystal window below its left\nwing you can see intricate machinery inside. It appears to have\nwound down."
+   :value      6
+   :tvalue     4
+   :action     :canary-object}
+
+  :broken-egg
+  {:synonyms   #{:egg :treasure}
+   :adjectives #{:broken :birds :encrusted :jewel}
+   :desc       "broken jewel-encrusted egg"
+   :flags      #{:takebit :contbit :openbit}
+   :ldesc      "There is a somewhat ruined egg here."
+   :capacity   6
+   :tvalue     2}
+
+  :broken-canary
+  {:location   :broken-egg
+   :synonyms   #{:canary :treasure}
+   :adjectives #{:broken :clockwork :gold :golden}
+   :desc       "broken clockwork canary"
+   :flags      #{:takebit}
+   :fdesc      "There is a golden clockwork canary nestled in the egg. It seems to\nhave recently had a bad experience. The mountings for its jewel-like\neyes are empty, and its silver beak is crumpled. Through a cracked\ncrystal window below its left wing you can see the remains of\nintricate machinery. It is not clear what result winding it would\nhave, as the mainspring seems sprung."
+   :tvalue     1
+   :action     :canary-object}
+
+  :bauble
+  {:synonyms   #{:bauble :treasure}
+   :adjectives #{:brass :beauti}
+   :desc       "beautiful brass bauble"
+   :flags      #{:takebit}
+   :value      1
+   :tvalue     1}
+
+  ;;; -------------------------------------------------------------------------
+  ;;; Boats, vehicles, and water objects
+  ;;; -------------------------------------------------------------------------
+
+  :inflatable-boat
+  {:location   :dam-base
+   :synonyms   #{:boat :pile :plastic :valve}
+   :adjectives #{:plastic :inflat}
+   :desc       "pile of plastic"
+   :flags      #{:takebit :burnbit}
+   :ldesc      "There is a folded pile of plastic here which has a small valve\nattached."
+   :size       20
+   :action     :iboat-function}
+
+  :inflated-boat
+  {:synonyms   #{:boat :raft}
+   :adjectives #{:inflat :magic :plastic :seaworthy}
+   :desc       "magic boat"
+   :flags      #{:takebit :burnbit :vehbit :openbit :searchbit}
+   :capacity   100
+   :size       20
+   :vtype      :nonlandbit
+   :action     :rboat-function}
+
+  :punctured-boat
+  {:synonyms   #{:boat :pile :plastic}
+   :adjectives #{:plastic :puncture :large}
+   :desc       "punctured boat"
+   :flags      #{:takebit :burnbit}
+   :size       20
+   :action     :dboat-function}
+
+  :boat-label
+  {:location   :inflated-boat
+   :synonyms   #{:label :fineprint :print}
+   :adjectives #{:tan :fine}
+   :desc       "tan label"
+   :flags      #{:readbit :takebit :burnbit}
+   :size       2
+   :text       "  !!!!FROBOZZ MAGIC BOAT COMPANY!!!!\n\nHello, Sailor!\n\nInstructions for use:\n\n   To get into a body of water, say \"Launch\".\n   To get to shore, say \"Land\" or the direction in which you want\nto maneuver the boat.\n\nWarranty:\n\n  This boat is guaranteed against all defects for a period of 76\nmilliseconds from date of purchase or until first used, whichever comes first.\n\nWarning:\n   This boat is made of thin plastic.\n   Good Luck!"}
+
+  :buoy
+  {:location   :river-4
+   :synonyms   #{:buoy}
+   :adjectives #{:red}
+   :desc       "red buoy"
+   :flags      #{:takebit :contbit}
+   :fdesc      "There is a red buoy here (probably a warning)."
+   :capacity   20
+   :size       10
+   :action     :treasure-inside}
+
+  :gunk
+  {:synonyms   #{:gunk :piece :slag}
+   :adjectives #{:small :vitreous}
+   :desc       "small piece of vitreous slag"
+   :flags      #{:takebit :trytakebit}
+   :size       10
+   :action     :gunk-function}
+
+  ;;; -------------------------------------------------------------------------
+  ;;; Outdoor / cave objects
+  ;;; -------------------------------------------------------------------------
+
+  :leaves
+  {:location   :grating-clearing
+   :synonyms   #{:leaves :leaf :pile}
+   :desc       "pile of leaves"
+   :flags      #{:takebit :burnbit :trytakebit}
+   :ldesc      "On the ground is a pile of leaves."
+   :size       25
+   :action     :leaf-pile}
+
+  :coal
+  {:location   :dead-end-5
+   :synonyms   #{:coal :pile :heap}
+   :adjectives #{:small}
+   :desc       "small pile of coal"
+   :flags      #{:takebit :burnbit}
+   :size       20}
+
+  :shovel
+  {:location   :sandy-beach
+   :synonyms   #{:shovel :tool :tools}
+   :desc       "shovel"
+   :flags      #{:takebit :toolbit}
+   :size       15}
+
+  :sand
+  {:location   :sandy-cave
+   :synonyms   #{:sand}
+   :desc       "sand"
+   :flags      #{:ndescbit}
+   :action     :sand-function}}}
 

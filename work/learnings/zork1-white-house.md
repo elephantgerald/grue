@@ -20,7 +20,22 @@ The `rug-moved` atom was added as part of the house interior PR, but the rug puz
 
 ZIL CELLAR-FCN M-ENTER only touches two flags: `FCLEAR TRAP-DOOR OPENBIT` and `FSET TRAP-DOOR TOUCHBIT` (1actions.zil:540-541). It does NOT clear `:invisible`. The `:invisible` flag is cleared by the rug puzzle handler `RUG-FCN MOVE` (1actions.zil:597) when the player moves the rug. In normal gameplay the rug is always moved before the player can descend, so `:invisible` is already cleared by the time M-ENTER fires. Tests that simulate a player going from living-room to cellar must first clear `:invisible` to represent the rug having been moved.
 
+## MAZE-11-FCN M-ENTER Clears :invisible on the Grate
+*From #2 — Underground dungeon rooms · 2026-04-12*
+
+ZIL MAZE-11-FCN M-ENTER (1actions.zil:833-835) calls `FCLEAR GRATE INVISIBLE` when the player enters the grating-room. Tests that bypass `arrive!` (direct `reset! here`) must manually clear `:invisible` on `:grate` to simulate this — same pattern as other arrive!-dependent state in `house_interior_test.clj`. The `:grate` object is defined with `#{:doorbit :ndescbit :invisible}` flags; its `:location :local-globals` key is new in the EDN objects section and will need to be handled by room-global lookup logic when the grate puzzle is implemented.
+
 ## ZIL GOTO Score-Obj Order: Between M-ENTER and Room Description
 *From #1 — House interior rooms · 2026-04-12*
 
 In ZIL's GOTO routine (gverbs.zil:2121-2136), the ordering is: M-ENTER action → SCORE-OBJ → V-FIRST-LOOK (room description). The endgame whisper from SCORE-OBJ therefore prints BEFORE the room description but AFTER M-ENTER side effects. Our Clojure `arrive!` combines M-ENTER and room description in one call, so `score-obj` currently fires after both. To match ZIL exactly, `arrive!` would need to be split into separate M-ENTER and description phases with `score-obj` in between. Noted as a known deviation — addressing it requires restructuring `arrive!`.
+
+## describe-objects: :fdesc Priority and :ndescbit Suppression
+*From #3 — World objects · 2026-04-13*
+
+ZIL's DESCRIBE-OBJECTS routine shows an object's FDESC (the "first description") when the object is in its initial room position. Our `describe-objects` was missing this — it jumped straight to "There is a X here." for objects with `:fdesc` but no `:ldesc`. Fixed in #3 by checking `:fdesc` before the generic fallback. Additionally, `:ndescbit` must always suppress description — an object with both `:ndescbit` and `:ldesc` should never auto-describe when looking (LDESC is for examine, not room look). Any future changes to `describe-objects` must preserve: ndescbit suppresses always → ldesc → fdesc → generic.
+
+## Container Contents Display is a Known Deviation (tracked as #46)
+*From #3 — World objects · 2026-04-13*
+
+The original Zork I shows items inside/on open containers when looking at a room (e.g., the bottle and sack on the kitchen table, the egg through the open nest in Up a Tree). Our `describe-objects` only calls `objects-in @here` — it does not recurse into open containers. This is a tracked deviation: see issue #46. Integration tests for rooms with container-held items should use `includes?` checks rather than exact string matching to avoid false failures when this is eventually implemented.
