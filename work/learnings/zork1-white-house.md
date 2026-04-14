@@ -30,10 +30,31 @@ ZIL MAZE-11-FCN M-ENTER (1actions.zil:833-835) calls `FCLEAR GRATE INVISIBLE` wh
 
 In ZIL's GOTO routine (gverbs.zil:2121-2136), the ordering is: M-ENTER action → SCORE-OBJ → V-FIRST-LOOK (room description). The endgame whisper from SCORE-OBJ therefore prints BEFORE the room description but AFTER M-ENTER side effects. Our Clojure `arrive!` combines M-ENTER and room description in one call, so `score-obj` currently fires after both. To match ZIL exactly, `arrive!` would need to be split into separate M-ENTER and description phases with `score-obj` in between. Noted as a known deviation — addressing it requires restructuring `arrive!`.
 
-## describe-objects: :fdesc Priority and :ndescbit Suppression
+## describe-objects: FDESC/LDESC Priority and NDESCBIT Semantics
 *From #3 — World objects · 2026-04-13*
 
-ZIL's DESCRIBE-OBJECTS routine shows an object's FDESC (the "first description") when the object is in its initial room position. Our `describe-objects` was missing this — it jumped straight to "There is a X here." for objects with `:fdesc` but no `:ldesc`. Fixed in #3 by checking `:fdesc` before the generic fallback. Additionally, `:ndescbit` must always suppress description — an object with both `:ndescbit` and `:ldesc` should never auto-describe when looking (LDESC is for examine, not room look). Any future changes to `describe-objects` must preserve: ndescbit suppresses always → ldesc → fdesc → generic.
+ZIL's DESCRIBE-OBJECT priority (gverbs.zil:1693-1707):
+1. `:invisible` → suppress everything (object not visible)
+2. `:fdesc` → show if object is untouched (no `:touchbit`) AND not `:ndescbit`
+3. `:ldesc` → show if present (NDESCBIT does NOT suppress LDESC)
+4. generic "There is a X here." → show if not `:ndescbit`
+
+Key implication: NDESCBIT suppresses FDESC and the generic fallback, but NOT LDESC. An object with `:ndescbit` + `:ldesc` WILL auto-describe via its LDESC. TOUCHBIT is set when the player handles an object; once set it causes FDESC to be skipped permanently (LDESC takes over). Any future changes to `describe-objects` must preserve this exact priority.
+
+## Darkness System: lit?, update-lit!, and load-world! Ordering
+*From #8 — Darkness and light source mechanic · 2026-04-14*
+
+`lit?` (gparser.zil:1333): room has `:onbit` OR winner carries object with `:lightbit`+`:onbit`. The `@lit` atom caches the current lighting state and must be explicitly updated via `update-lit!` after resetting `@here` directly (e.g., in tests). `load-world!` now resets `@here`/`@winner` to starting values before calling `update-lit!`, making it a complete game-state reset. Tests that set `@here` directly (bypassing `arrive!`) must call `z/update-lit!` before testing light-dependent behavior — otherwise `@lit` will reflect the previous room's lighting.
+
+## JIGS-UP: Score Penalty and Deferred Elements
+*From #8 — Darkness and light source mechanic · 2026-04-14*
+
+ZIL JIGS-UP (1actions.zil:4046): prints death message, deducts 10 score, prints death block, then handles resurrection (DEATHS counter, LUCKY flag, "Bad luck, huh?"). Our `jigs-up` implements the message + score deduction + death block. Resurrection, LUCKY flag, and "Bad luck, huh?" are deferred. The death block format is `\n    ****  You have died  ****\n` (from ZIL `|    ****  You have died  ****\n|\n|`). Returns `:quit` to signal game end.
+
+## Known Deviation: "You have moved into a dark place." Ordering
+*From #8 — Darkness and light source mechanic · 2026-04-14*
+
+ZIL GOTO prints "You have moved into a dark place." BEFORE V-FIRST-LOOK (before room description). Our implementation prints it AFTER `arrive!` (which includes V-FIRST-LOOK). This means on a lit→dark move, you see "It is pitch black. You are likely to be eaten by a grue." before "You have moved into a dark place." — the opposite of ZIL order. Fixing this requires splitting `arrive!` into separate M-ENTER and display phases. Accepted as a known deviation.
 
 ## Container Contents Display is a Known Deviation (tracked as #46)
 *From #3 — World objects · 2026-04-13*

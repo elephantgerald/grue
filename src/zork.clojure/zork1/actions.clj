@@ -15,18 +15,26 @@
 (def base-score  (atom 0))              ; pickup total  — ZIL: BASE-SCORE
 (def won-flag    (atom false))          ; endgame flag  — ZIL: WON-FLAG
 (def rug-moved   (atom false))          ; rug moved in living room — ZIL: RUG-MOVED
+(def lit         (atom false))          ; current room is lit — ZIL: <GLOBAL LIT <>>
+(def lamp-power  (atom nil))            ; lamp fuel remaining (nil = off); set to 185 on lamp-on
 
 ;;; ---------------------------------------------------------------------------
 ;;; World loading
 ;;; ---------------------------------------------------------------------------
 
+(declare update-lit! score-upd)
+
 (defn load-world! []
   (reset! world (edn/read-string (slurp (io/resource "1dungeon.edn"))))
+  (reset! here :west-of-house)
+  (reset! winner :adventurer)
   (reset! turns 0)
   (reset! score 0)
   (reset! base-score 0)
   (reset! won-flag false)
-  (reset! rug-moved false))
+  (reset! rug-moved false)
+  (reset! lamp-power nil)
+  (update-lit!))
 
 ;;; ---------------------------------------------------------------------------
 ;;; World queries
@@ -45,9 +53,60 @@
   (filter (fn [[_ obj]] (= (:location obj) location-key))
           (:objects @world)))
 
+(defn objects-carried []
+  (objects-in :adventurer))
+
 ;;; flag? mirrors ZIL FSET?
 (defn flag? [obj flag]
   (contains? (:flags obj) flag))
+
+;;; ---------------------------------------------------------------------------
+;;; Light system — ZIL: LIT? (gparser.zil:1333), GLOBAL LIT (gverbs.zil:1626)
+;;; ---------------------------------------------------------------------------
+
+;;; ZIL LIT? checks: room :onbit OR winner carries object with :lightbit + :onbit.
+(defn lit? []
+  (or (flag? (get-room @here) :onbit)
+      (some (fn [[_ obj]] (and (flag? obj :lightbit) (flag? obj :onbit)))
+            (objects-carried))))
+
+(defn update-lit! []
+  (reset! lit (lit?)))
+
+;;; ---------------------------------------------------------------------------
+;;; JIGS-UP — ZIL: JIGS-UP macro. Prints death message and ends the game.
+;;; ---------------------------------------------------------------------------
+
+;;; ZIL JIGS-UP (1actions.zil:4046): prints desc, deducts 10 score, shows death block.
+;;; Omits: LUCKY/"Bad luck, huh?", DEATHS counter, resurrection — deferred to later issue.
+(defn jigs-up [msg]
+  (println msg)
+  (score-upd -10)
+  (println "\n    ****  You have died  ****\n")
+  :quit)
+
+;;; ---------------------------------------------------------------------------
+;;; Lamp fuel — ZIL: I-LANTERN interrupt (1actions.zil:2315)
+;;; LAMP-TABLE: [100, msg, 70, msg, 15, msg, 0] — total 185 turns of light.
+;;; lamp-power counts down each turn the lamp is on; #14 sets it to 185 on lamp-on.
+;;; ---------------------------------------------------------------------------
+
+(defn tick-lamp! []
+  (let [lamp (get-object :lamp)]
+    (when (and (flag? lamp :onbit) (not (flag? lamp :rmungbit)))
+      (swap! lamp-power (fnil dec 185))
+      (let [power    @lamp-power
+            visible? (#{:adventurer @here} (:location lamp))]
+        (cond
+          (< power 0)
+          (do (swap! world update-in [:objects :lamp :flags] disj :onbit)
+              (swap! world update-in [:objects :lamp :flags] conj :rmungbit)
+              (update-lit!)
+              (when visible?
+                (println "You'd better have more light than from the brass lantern.")))
+          (= power 85) (when visible? (println "The lamp appears a bit dimmer."))
+          (= power 15) (when visible? (println "The lamp is definitely dimmer now."))
+          (= power 0)  (when visible? (println "The lamp is nearly out.")))))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; SCORE-UPD / SCORE-OBJ — ZIL: ROUTINE SCORE-UPD / ROUTINE SCORE-OBJ
@@ -281,14 +340,19 @@
         (:ldesc obj)                      (println (:ldesc obj))
         (not (flag? obj :ndescbit))       (println (str "There is a " (:desc obj) " here."))))))
 
+;;; ZIL DESCRIBE-ROOM (gverbs.zil:1637): returns false (no-op) when dark.
+;;; Touchbit is NOT set in darkness — only set when player can actually see the room.
 (defn v-look []
-  (swap! world update-in [:rooms @here :flags] conj :touchbit)
-  (let [room (get-room @here)]
-    (println (:desc room))
-    (if (:ldesc room)
-      (println (:ldesc room))
-      (room-action (:action room) :m-look))
-    (describe-objects)))
+  (if (not @lit)
+    (println "It is pitch black. You are likely to be eaten by a grue.")
+    (do
+      (swap! world update-in [:rooms @here :flags] conj :touchbit)
+      (let [room (get-room @here)]
+        (println (:desc room))
+        (if (:ldesc room)
+          (println (:ldesc room))
+          (room-action (:action room) :m-look))
+        (describe-objects)))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-LOOK-BRIEF — room name + objects only, no long description
@@ -296,8 +360,10 @@
 ;;; ---------------------------------------------------------------------------
 
 (defn v-look-brief []
-  (println (:desc (get-room @here)))
-  (describe-objects))
+  (if (not @lit)
+    (println "It is pitch black. You are likely to be eaten by a grue.")
+    (do (println (:desc (get-room @here)))
+        (describe-objects))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; ARRIVE! — called on entering a room via movement
@@ -311,6 +377,7 @@
     (println "That part of the world isn't implemented yet.")
     (do
       (room-action (:action (get-room @here)) :m-enter)
+      (update-lit!)
       (if (flag? (get-room @here) :touchbit)
         (v-look-brief)
         (v-look)))))
@@ -473,11 +540,29 @@
 ;;; Exit types: keyword (go), string (blocked), map {:to :room :if :flag}
 ;;; ---------------------------------------------------------------------------
 
+;;; Shared move helper: move to dest, check grue (dark→dark), call arrive!,
+;;; print "dark place" msg (lit→dark), score. Returns :quit on grue, :turn on success.
+;;; ZIL GOTO order (gverbs.zil:2094-2120): update lit → grue check → M-ENTER → show room.
+;;; Known deviation: "You have moved into a dark place." prints after arrive! (not before).
+(defn- do-move! [dest]
+  (let [was-lit @lit]
+    (reset! here dest)
+    (if (and (not was-lit) (not (lit?)) (< (rand) 0.8))
+      (jigs-up "Oh, no! A lurking grue slithered into the room and devoured you!")
+      (do (arrive!)
+          (when (and was-lit (not @lit))
+            (println "You have moved into a dark place."))
+          (score-obj dest)
+          :turn))))
+
 (defn v-walk [direction]
   (let [exit (get-in (get-room @here) [:exits direction])]
     (cond
+      ;; No exit — grue risk if currently in darkness (gverbs.zil:1560-1578)
       (nil? exit)
-      (println "You can't go that way.")
+      (if (and (not @lit) (< (rand) 0.8))
+        (jigs-up "Oh, no! You have walked into the slavering fangs of a lurking grue!")
+        (println "You can't go that way."))
 
       (string? exit)
       (println exit)
@@ -486,19 +571,13 @@
       ;; arrive! combines M-ENTER and description, so score-obj fires after both.
       ;; Exact ZIL order (whisper before description) would require splitting arrive!.
       (keyword? exit)
-      (do (reset! here exit)
-          (arrive!)
-          (score-obj exit)
-          :turn)
+      (do-move! exit)
 
       ;; conditional on a global flag: {:to :room :if :flag [:else "msg"]}
       ;; :else is optional — defaults to "You can't go that way."
       (and (map? exit) (:if exit))
       (if (get-in @world [:flags (:if exit)])
-        (do (reset! here (:to exit))
-            (arrive!)
-            (score-obj (:to exit))
-            :turn)
+        (do-move! (:to exit))
         (println (or (:else exit) "You can't go that way.")))
 
       ;; conditional on an object's :openbit: {:to :room :if-open :obj-key [:else "msg"]}
@@ -509,10 +588,7 @@
       (and (map? exit) (:if-open exit))
       (let [obj (get-object (:if-open exit))]
         (if (flag? obj :openbit)
-          (do (reset! here (:to exit))
-              (arrive!)
-              (score-obj (:to exit))
-              :turn)
+          (do-move! (:to exit))
           (if (flag? obj :invisible)
             (println "You can't go that way.")
             (println (or (:else exit) (str "The " (:desc obj) " is closed.")))))))))
