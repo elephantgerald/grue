@@ -1,7 +1,8 @@
 (ns darkness-test
   (:require [clojure.test :refer [deftest is use-fixtures]]
             [clojure.string :as str]
-            [zork1.actions :as z]))
+            [zork1.actions :as z]
+            [gparser :as parser]))
 
 (defn reset-world! []
   (z/load-world!))
@@ -210,7 +211,7 @@
   ;; Lamp already has :onbit → "It is already on." — not a turn
   (reset! z/here :west-of-house)
   (setup-lamp-on-in-inventory!)
-  (let [out (output-of #(is (not (= :turn (z/v-lamp-on :lamp)))))]
+  (let [out (output-of #(is (nil? (z/v-lamp-on :lamp))))]
     (is (str/includes? out "It is already on."))))
 
 (deftest lamp-on-burned-out
@@ -218,7 +219,7 @@
   (reset! z/here :west-of-house)
   (swap! z/world update-in [:objects :lamp :location] (constantly :adventurer))
   (swap! z/world update-in [:objects :lamp :flags] #(-> % (disj :onbit) (conj :rmungbit)))
-  (let [out (output-of #(is (not (= :turn (z/v-lamp-on :lamp)))))]
+  (let [out (output-of #(is (nil? (z/v-lamp-on :lamp))))]
     (is (str/includes? out "A burned-out lamp won't light."))))
 
 (deftest lamp-on-lights-dark-room
@@ -227,13 +228,21 @@
   (setup-lamp-off-in-inventory!)
   (z/update-lit!)  ; ensure @lit is false before lighting
   (let [out (output-of #(z/v-lamp-on :lamp))]
-    (is (str/includes? out "You are in a dark and damp cellar"))))
+    (is (str/includes? out "You are in a dark and damp cellar"))
+    (is @z/lit)))
 
 (deftest lamp-on-non-lightbit-object
   ;; Object without :lightbit → "You can't turn that on."
   (reset! z/here :west-of-house)
   (let [out (output-of #(z/v-lamp-on :sword))]
     (is (str/includes? out "You can't turn that on."))))
+
+(deftest lamp-on-burnbit-object
+  ;; Object with :burnbit but no :lightbit → "If you wish to burn the X, you should say so."
+  ;; (gverbs.zil:797-799 — :advertisement has :burnbit, desc "leaflet")
+  (reset! z/here :west-of-house)
+  (let [out (output-of #(z/v-lamp-on :advertisement))]
+    (is (str/includes? out "If you wish to burn the leaflet, you should say so."))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; v-lamp-off — ZIL V-LAMP-OFF (gverbs.zil:771) + LANTERN (1actions.zil:2243)
@@ -252,7 +261,7 @@
   ;; Lamp not :onbit → "It is already off." — not a turn
   (reset! z/here :west-of-house)
   (setup-lamp-off-in-inventory!)
-  (let [out (output-of #(is (not (= :turn (z/v-lamp-off :lamp)))))]
+  (let [out (output-of #(is (nil? (z/v-lamp-off :lamp))))]
     (is (str/includes? out "It is already off."))))
 
 (deftest lamp-off-burned-out
@@ -260,7 +269,7 @@
   (reset! z/here :west-of-house)
   (swap! z/world update-in [:objects :lamp :location] (constantly :adventurer))
   (swap! z/world update-in [:objects :lamp :flags] #(-> % (disj :onbit) (conj :rmungbit)))
-  (let [out (output-of #(is (not (= :turn (z/v-lamp-off :lamp)))))]
+  (let [out (output-of #(is (nil? (z/v-lamp-off :lamp))))]
     (is (str/includes? out "The lamp has already burned out."))))
 
 (deftest lamp-off-now-dark
@@ -269,10 +278,27 @@
   (setup-lamp-on-in-inventory!)
   (z/update-lit!)
   (let [out (output-of #(z/v-lamp-off :lamp))]
-    (is (str/includes? out "It is now pitch black."))))
+    (is (str/includes? out "It is now pitch black."))
+    (is (not @z/lit))))
 
 (deftest lamp-off-non-lightbit-object
   ;; Object without :lightbit → "You can't turn that off."
   (reset! z/here :west-of-house)
   (let [out (output-of #(z/v-lamp-off :sword))]
     (is (str/includes? out "You can't turn that off."))))
+
+;;; ---------------------------------------------------------------------------
+;;; Parser — verb mappings for light/extinguish/douse (gsyntax.zil:286/211/213)
+;;; ---------------------------------------------------------------------------
+
+(deftest parser-light-maps-to-lamp-on
+  ;; "light" verb string → :lamp-on action (gsyntax.zil:286)
+  (is (= :lamp-on (:verb (parser/parse "light lamp")))))
+
+(deftest parser-extinguish-maps-to-lamp-off
+  ;; "extinguish" verb string → :lamp-off action (gsyntax.zil:211)
+  (is (= :lamp-off (:verb (parser/parse "extinguish lamp")))))
+
+(deftest parser-douse-maps-to-lamp-off
+  ;; "douse" verb string → :lamp-off action (gsyntax.zil:213)
+  (is (= :lamp-off (:verb (parser/parse "douse lamp")))))
