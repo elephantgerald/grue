@@ -48,15 +48,36 @@
    "extinguish" :lamp-off "douse"   :lamp-off})
 
 ;;; ---------------------------------------------------------------------------
-;;; Object lookup — find an object key by word, searching :synonyms.
-;;; Returns :not-found when the word was given but matches nothing, so
-;;; perform can distinguish "no object typed" (nil) from "word not recognised".
+;;; Object lookup — mirrors ZIL SEARCH-LIST / DO-SL (gparser.zil:1202).
+;;; Only accessible objects are searched: those directly at @here or @winner,
+;;; or inside open/transparent containers reachable from those locations.
+;;; Returns :not-found when no accessible object matches the word.
 ;;; ---------------------------------------------------------------------------
+
+(defn- accessible? [obj-key]
+  ;; An object is in scope if it is:
+  ;;   - directly in the current room (@here)
+  ;;   - in player inventory: location = :winner (v-take sentinel) or @winner (:adventurer)
+  ;;   - inside an open/transparent container that is itself accessible
+  (let [obj (get-in @world/world [:objects obj-key])
+        loc (:location obj)]
+    (cond
+      (nil? loc) false
+      (or (= loc @world/here)
+          (= loc :winner)
+          (= loc @world/winner)) true
+      ;; inside a container — container must itself be accessible and open/transparent
+      :else (let [container (get-in @world/world [:objects loc])]
+              (and container
+                   (or (contains? (:flags container) :openbit)
+                       (contains? (:flags container) :transbit))
+                   (accessible? loc))))))
 
 (defn find-object [word]
   (let [kw (keyword word)
         result (some (fn [[obj-key obj]]
-                       (when (contains? (:synonyms obj) kw)
+                       (when (and (contains? (:synonyms obj) kw)
+                                  (accessible? obj-key))
                          obj-key))
                      (:objects @world/world))]
     (or result :not-found)))

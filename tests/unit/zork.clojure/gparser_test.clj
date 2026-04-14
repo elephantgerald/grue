@@ -9,6 +9,10 @@
 
 (defn load-world-fixture [f]
   (z/load-world!)
+  ;; Open the mailbox so the leaflet (inside it) is accessible to find-object.
+  ;; @here starts at :west-of-house; :advertisement's location chain is
+  ;; :advertisement → :mailbox → :west-of-house.
+  (swap! z/world update-in [:objects :mailbox :flags] conj :openbit)
   (f))
 
 (use-fixtures :once load-world-fixture)

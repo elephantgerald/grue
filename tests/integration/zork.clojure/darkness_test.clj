@@ -292,13 +292,16 @@
 ;;; ---------------------------------------------------------------------------
 
 (deftest parser-light-maps-to-lamp-on
-  ;; "light" verb string → :lamp-on action (gsyntax.zil:286)
-  (is (= :lamp-on (:verb (parser/parse "light lamp")))))
+  ;; "light" → :lamp-on, lamp in inventory (gsyntax.zil:286)
+  (swap! z/world update-in [:objects :lamp :location] (constantly :adventurer))
+  (is (= {:verb :lamp-on :obj :lamp} (parser/parse "light lamp"))))
 
 (deftest parser-extinguish-maps-to-lamp-off
-  ;; "extinguish" verb string → :lamp-off action (gsyntax.zil:211)
-  (is (= :lamp-off (:verb (parser/parse "extinguish lamp")))))
+  ;; "extinguish" → :lamp-off, lamp in inventory (gsyntax.zil:211)
+  (swap! z/world update-in [:objects :lamp :location] (constantly :adventurer))
+  (is (= {:verb :lamp-off :obj :lamp} (parser/parse "extinguish lamp"))))
 
 (deftest parser-douse-maps-to-lamp-off
-  ;; "douse" verb string → :lamp-off action (gsyntax.zil:213)
-  (is (= :lamp-off (:verb (parser/parse "douse lamp")))))
+  ;; "douse" → :lamp-off, lamp in inventory (gsyntax.zil:213)
+  (swap! z/world update-in [:objects :lamp :location] (constantly :adventurer))
+  (is (= {:verb :lamp-off :obj :lamp} (parser/parse "douse lamp"))))
