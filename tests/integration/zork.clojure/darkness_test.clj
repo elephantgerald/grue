@@ -4,9 +4,7 @@
             [zork1.actions :as z]))
 
 (defn reset-world! []
-  (z/load-world!)
-  (reset! z/here :west-of-house)
-  (reset! z/winner :adventurer))
+  (z/load-world!))
 
 (defn output-of [thunk]
   (let [sw (java.io.StringWriter.)]
@@ -122,6 +120,11 @@
 (deftest jigs-up-prints-death-block
   (let [out (output-of #(z/jigs-up "test"))]
     (is (str/includes? out "You have died"))))
+
+(deftest jigs-up-deducts-score
+  (reset! z/score 50)
+  (z/jigs-up "test")
+  (is (= 40 @z/score)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Lamp fuel — ZIL I-LANTERN interrupt (1actions.zil:2315)

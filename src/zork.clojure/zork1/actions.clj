@@ -94,11 +94,15 @@
 (defn tick-lamp! []
   (let [lamp (get-object :lamp)]
     (when (and (flag? lamp :onbit) (not (flag? lamp :rmungbit)))
+      ;; lamp-power must be set to 185 by the lamp-on handler (#14) before :onbit is set.
+      ;; fnil dec 185 provides a safe fallback but should never trigger in normal play.
       (swap! lamp-power (fnil dec 185))
       (let [power    @lamp-power
             visible? (#{:adventurer @here} (:location lamp))]
         (cond
           (< power 0)
+          ;; TODO #14: lamp-on handler must (reset! lamp-power 185) before setting :onbit;
+          ;; lamp-power is not reset here, so it will be negative after burnout.
           (do (swap! world update-in [:objects :lamp :flags] disj :onbit)
               (swap! world update-in [:objects :lamp :flags] conj :rmungbit)
               (update-lit!)
