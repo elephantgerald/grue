@@ -54,6 +54,12 @@
     :go        (if dir
                  (actions/v-walk dir)
                  (println "Which direction?"))
+    :lamp-on   (if obj
+                 (actions/v-lamp-on obj)
+                 (println "What do you want to light?"))
+    :lamp-off  (if obj
+                 (actions/v-lamp-off obj)
+                 (println "What do you want to extinguish?"))
     :quit      (do (println "Your score is 0. Goodbye.") :quit)
     :unknown   (println "I don't understand that.")))
 

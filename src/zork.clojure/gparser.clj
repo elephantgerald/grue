@@ -43,7 +43,9 @@
    "diagnose"  :diagnose
    "move"      :move    "push"      :move  "pull" :move
    "score"     :score
-   "quit"      :quit    "q"         :quit})
+   "quit"      :quit    "q"         :quit
+   "light"     :lamp-on
+   "extinguish" :lamp-off "douse"   :lamp-off})
 
 ;;; ---------------------------------------------------------------------------
 ;;; Object lookup — find an object key by word, searching :synonyms.

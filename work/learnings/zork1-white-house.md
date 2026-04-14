@@ -56,6 +56,16 @@ ZIL JIGS-UP (1actions.zil:4046): prints death message, deducts 10 score, prints 
 
 ZIL GOTO prints "You have moved into a dark place." BEFORE V-FIRST-LOOK (before room description). Our implementation prints it AFTER `arrive!` (which includes V-FIRST-LOOK). This means on a lit→dark move, you see "It is pitch black. You are likely to be eaten by a grue." before "You have moved into a dark place." — the opposite of ZIL order. Fixing this requires splitting `arrive!` into separate M-ENTER and display phases. Accepted as a known deviation.
 
+## Object Action Handlers: Fold Until Dispatch System Exists (#48)
+*From #14 — light / extinguish · 2026-04-14*
+
+ZIL objects with an `ACTION` property have that routine called before the generic verb handler fires (RTRUE skips the verb handler; RFALSE lets it run). The `:action` keys in `1dungeon.edn` (`:lantern`, `:mailbox-f`, `:troll-fcn`, etc.) reflect this. No Clojure dispatch system exists yet — the burned-out lamp checks from LANTERN (1actions.zil:2230) are folded directly into `v-lamp-on`/`v-lamp-off`. When implementing new verbs, fold the target object's ACTION logic into the verb handler until #48 (action handler dispatch) is implemented. Do not leave `:action` keys acting as documentation-only dead weight.
+
+## V-LAMP-ON / V-LAMP-OFF: Turn Consumption on Failed Actions (open question)
+*From #14 — light / extinguish · 2026-04-14*
+
+ZIL's V-LAMP-ON and V-LAMP-OFF both end with `<RTRUE>`, which in ZIL's main loop advances the turn counter regardless of which branch fired. Our implementation returns `nil` (not `:turn`) for failed actions ("It is already on/off", "A burned-out lamp won't light.", "You can't turn that on/off"), matching the pattern used by all other verb handlers. Whether failed actions should consume a turn requires FROTZ verification. Current assumption: they do not.
+
 ## Container Contents Display is a Known Deviation (tracked as #46)
 *From #3 — World objects · 2026-04-13*
 
