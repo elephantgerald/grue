@@ -1,0 +1,59 @@
+(ns actions-test
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
+            [clojure.string :as str]
+            [zork1.actions :as z]))
+
+(use-fixtures :each (fn [f] (z/load-world!) (f)))
+
+(defn output-of [thunk]
+  (let [sw (java.io.StringWriter.)]
+    (binding [*out* sw] (thunk))
+    (str/trim (str sw))))
+
+;;; ---------------------------------------------------------------------------
+;;; dispatch-action — ZIL: object ACTION property dispatch (#48)
+;;; Looks up :action on the object, calls the matching object-action handler.
+;;; Truthy return = handler took over (ZIL RTRUE); nil = fall through to verb.
+;;; ---------------------------------------------------------------------------
+
+(deftest dispatch-returns-nil-for-action-without-handler
+  ;; :sword has :action :sword-fcn but no defmethod → :default → nil (pass through)
+  (testing "an :action value with no handler falls through"
+    (is (nil? (z/dispatch-action :sword :lamp-on)))))
+
+(deftest dispatch-returns-nil-for-unhandled-verb
+  ;; lamp's :lantern handler handles :lamp-on/:lamp-off only; other verbs pass through
+  (testing "a handler returns nil for a verb it does not handle"
+    (is (nil? (z/dispatch-action :lamp :examine)))))
+
+(deftest lantern-skips-lamp-on-when-burned-out
+  (swap! z/world update-in [:objects :lamp :flags] conj :rmungbit)
+  (let [result (atom nil)
+        out    (output-of #(reset! result (z/dispatch-action :lamp :lamp-on)))]
+    (testing "burned-out lamp-on returns truthy (RTRUE) and prints the message"
+      (is @result)
+      (is (str/includes? out "A burned-out lamp won't light.")))))
+
+(deftest lantern-passes-through-lamp-on-when-healthy
+  ;; lamp is not burned out → handler returns nil so V-LAMP-ON runs
+  (testing "healthy lamp-on falls through to the verb handler"
+    (is (nil? (z/dispatch-action :lamp :lamp-on)))))
+
+(deftest lantern-skips-lamp-off-when-burned-out
+  (swap! z/world update-in [:objects :lamp :flags] conj :rmungbit)
+  (let [result (atom nil)
+        out    (output-of #(reset! result (z/dispatch-action :lamp :lamp-off)))]
+    (testing "burned-out lamp-off returns truthy (RTRUE) and prints the message"
+      (is @result)
+      (is (str/includes? out "The lamp has already burned out.")))))
+
+(deftest mailbox-take-is-handled
+  (let [result (atom nil)
+        out    (output-of #(reset! result (z/dispatch-action :mailbox :take)))]
+    (testing "mailbox :take returns truthy and prints the anchored message"
+      (is @result)
+      (is (str/includes? out "It is securely anchored.")))))
+
+(deftest mailbox-passes-through-non-take-verb
+  (testing "mailbox handler returns nil for verbs other than :take"
+    (is (nil? (z/dispatch-action :mailbox :open)))))

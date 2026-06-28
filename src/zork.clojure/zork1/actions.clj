@@ -22,7 +22,7 @@
 ;;; World loading
 ;;; ---------------------------------------------------------------------------
 
-(declare update-lit! score-upd v-look)
+(declare update-lit! score-upd v-look dispatch-action)
 
 (defn load-world! []
   (reset! world (edn/read-string (slurp (io/resource "1dungeon.edn"))))
@@ -112,19 +112,21 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-LAMP-ON / V-LAMP-OFF — ZIL: gverbs.zil:786 / gverbs.zil:771
-;;; LANTERN object handler (1actions.zil:2237) is folded in here.
+;;; The LANTERN object handler runs first via dispatch-action (#48): its
+;;; burned-out (RMUNGBIT) branches return truthy to pre-empt these verbs.
 ;;; ---------------------------------------------------------------------------
 
 (defn v-lamp-on [obj-key]
   (let [obj (get-object obj-key)]
     (cond
+      ;; ZIL: object ACTION (LANTERN) runs before V-LAMP-ON; truthy = pre-empt.
+      (dispatch-action obj-key :lamp-on)
+      nil
+
       (not (flag? obj :lightbit))
       (if (flag? obj :burnbit)
         (println (str "If you wish to burn the " (:desc obj) ", you should say so."))
         (println "You can't turn that on."))
-
-      (flag? obj :rmungbit)
-      (println "A burned-out lamp won't light.")
 
       (flag? obj :onbit)
       (println "It is already on.")
@@ -142,11 +144,12 @@
 (defn v-lamp-off [obj-key]
   (let [obj (get-object obj-key)]
     (cond
+      ;; ZIL: object ACTION (LANTERN) runs before V-LAMP-OFF; truthy = pre-empt.
+      (dispatch-action obj-key :lamp-off)
+      nil
+
       (not (flag? obj :lightbit))
       (println "You can't turn that off.")
-
-      (flag? obj :rmungbit)
-      (println "The lamp has already burned out.")
 
       (not (flag? obj :onbit))
       (println "It is already off.")
@@ -278,20 +281,47 @@
 (defmethod room-action :default [_ _] nil)
 
 ;;; ---------------------------------------------------------------------------
-;;; Object action handlers — ZIL: ROUTINE MAILBOX-F ()
-;;; Dispatch on object key, called with the current verb keyword.
-;;; Return :m-handled to stop further dispatch, nil to pass through.
+;;; Object action handlers — ZIL: object ACTION property (e.g. ROUTINE LANTERN)
+;;;
+;;; In ZIL, PERFORM calls an object's ACTION routine before the verb's default
+;;; handler; RTRUE pre-empts the default, RFALSE lets it run. We dispatch on the
+;;; object's :action property value (same pattern as room-action), keyed off the
+;;; :action keys in 1dungeon.edn. A truthy return means the handler took over
+;;; (ZIL RTRUE); nil means fall through to the verb handler (ZIL RFALSE).
 ;;; ---------------------------------------------------------------------------
 
-(defmulti object-action (fn [obj-key _verb] obj-key))
+(defmulti object-action (fn [action _verb] action))
 
-(defmethod object-action :mailbox [_ verb]
+;;; ZIL: ROUTINE LANTERN (1actions.zil:2230). Only the RMUNGBIT (burned-out)
+;;; cases return RTRUE to pre-empt V-LAMP-ON/V-LAMP-OFF; everything else falls
+;;; through so the verb handler runs. LANTERN is lamp-specific in ZIL, so this
+;;; references ,LAMP directly. THROW/EXAMINE branches are deferred until those
+;;; verbs are implemented.
+(defmethod object-action :lantern [_ verb]
+  (case verb
+    :lamp-on  (when (flag? (get-object :lamp) :rmungbit)
+                (println "A burned-out lamp won't light.")
+                :m-handled)
+    :lamp-off (when (flag? (get-object :lamp) :rmungbit)
+                (println "The lamp has already burned out.")
+                :m-handled)
+    nil))
+
+;;; ZIL: ROUTINE MAILBOX-F (1actions.zil:2260)
+(defmethod object-action :mailbox-f [_ verb]
   (when (= verb :take)
     (println "It is securely anchored.")
     :m-handled))
 
-;;; Default — object has no special handler
+;;; Default — an :action value with no handler defined: fall through to the verb.
 (defmethod object-action :default [_ _] nil)
+
+;;; ZIL: PERFORM's call to PRSO's ACTION routine. Looks up :action on the object
+;;; and invokes the matching object-action handler. Returns the handler's value
+;;; (truthy = skip the verb handler), or nil if the object has no :action.
+(defn dispatch-action [obj-key verb]
+  (when-let [action (:action (get-object obj-key))]
+    (object-action action verb)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-LOOK-INSIDE — ZIL: ROUTINE V-LOOK-INSIDE
@@ -494,9 +524,9 @@
       (= (:location obj) :winner)
       (println "You already have that.")
 
-      ;; TRYTAKEBIT — give the object a chance to block it
+      ;; TRYTAKEBIT — give the object's ACTION a chance to block it (ZIL ITAKE)
       (and (flag? obj :trytakebit)
-           (= :m-handled (object-action obj-key :take)))
+           (dispatch-action obj-key :take))
       nil
 
       ;; TAKEBIT — take it; award any pickup score (ZIL: SCORE-OBJ in ITAKE)
