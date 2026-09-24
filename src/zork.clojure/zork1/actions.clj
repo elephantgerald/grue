@@ -310,6 +310,10 @@
 ;;; through so the verb handler runs. LANTERN is lamp-specific in ZIL, so this
 ;;; references ,LAMP directly. THROW/EXAMINE branches are deferred until those
 ;;; verbs are implemented.
+;;; The healthy branches are not pure pass-throughs in ZIL: they ENABLE/DISABLE
+;;; the I-LANTERN fuel interrupt before returning RFALSE. Here that is modeled
+;;; by tick-lamp!, which only counts down while the lamp has :onbit — set and
+;;; cleared by V-LAMP-ON/V-LAMP-OFF — so this handler returns nil for them.
 (defmethod object-action :lantern [_ {:keys [prsa]}]
   (case prsa
     :lamp-on  (when (flag? (get-object :lamp) :rmungbit)
