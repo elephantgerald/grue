@@ -285,8 +285,8 @@
 ;;;
 ;;; In ZIL, PERFORM calls an object's ACTION routine before the verb's default
 ;;; handler; RTRUE pre-empts the default, RFALSE lets it run. We dispatch on the
-;;; object's :action property value (same pattern as room-action), keyed off the
-;;; :action keys in 1dungeon.edn. A truthy return means the handler took over
+;;; object's :action property value (same pattern as room-action) — e.g.
+;;; :lantern, :mailbox-f in 1dungeon.edn. A truthy return means the handler took over
 ;;; (ZIL RTRUE); nil means fall through to the verb handler (ZIL RFALSE).
 ;;; ---------------------------------------------------------------------------
 
