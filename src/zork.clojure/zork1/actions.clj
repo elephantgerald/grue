@@ -292,6 +292,14 @@
 
 (defmulti object-action (fn [action _verb] action))
 
+;;; ZIL: <TELL ... CR> <RTRUE> — the pre-empt idiom. A handler that prints its
+;;; own response must also return truthy, or the verb handler runs too (double
+;;; output, and e.g. a wrongful take). `handled` makes the two inseparable:
+;;; write blocking branches as (handled "msg"), never a bare println.
+(defn handled [& msg]
+  (apply println msg)
+  :m-handled)
+
 ;;; ZIL: ROUTINE LANTERN (1actions.zil:2230). Only the RMUNGBIT (burned-out)
 ;;; cases return RTRUE to pre-empt V-LAMP-ON/V-LAMP-OFF; everything else falls
 ;;; through so the verb handler runs. LANTERN is lamp-specific in ZIL, so this
@@ -300,18 +308,15 @@
 (defmethod object-action :lantern [_ verb]
   (case verb
     :lamp-on  (when (flag? (get-object :lamp) :rmungbit)
-                (println "A burned-out lamp won't light.")
-                :m-handled)
+                (handled "A burned-out lamp won't light."))
     :lamp-off (when (flag? (get-object :lamp) :rmungbit)
-                (println "The lamp has already burned out.")
-                :m-handled)
+                (handled "The lamp has already burned out."))
     nil))
 
 ;;; ZIL: ROUTINE MAILBOX-F (1actions.zil:2260)
 (defmethod object-action :mailbox-f [_ verb]
   (when (= verb :take)
-    (println "It is securely anchored.")
-    :m-handled))
+    (handled "It is securely anchored.")))
 
 ;;; Default — an :action value with no handler defined: fall through to the verb.
 (defmethod object-action :default [_ _] nil)

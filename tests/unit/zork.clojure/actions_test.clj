@@ -57,3 +57,40 @@
 (deftest mailbox-passes-through-non-take-verb
   (testing "mailbox handler returns nil for verbs other than :take"
     (is (nil? (z/dispatch-action :mailbox :open)))))
+
+;;; ---------------------------------------------------------------------------
+;;; handled — ZIL: <TELL ... CR> <RTRUE> pre-empt idiom (#48 review I-2)
+;;; A handler that prints must also return truthy, or the verb runs as well.
+;;; These tests register a throwaway handler on the sword (:trytakebit, no
+;;; real handler) to show the contract end-to-end through v-take.
+;;; ---------------------------------------------------------------------------
+
+(deftest handled-prints-and-returns-truthy
+  (let [result (atom nil)
+        out    (output-of #(reset! result (z/handled "It is securely anchored.")))]
+    (is @result)
+    (is (= "It is securely anchored." out))))
+
+(defn- with-test-handler
+  "Point :sword at a throwaway :action value whose :take branch is `f`, run
+  `thunk`, then unregister the method."
+  [f thunk]
+  (defmethod z/object-action ::test-handler [_ verb] (when (= verb :take) (f)))
+  (try
+    (swap! z/world assoc-in [:objects :sword :action] ::test-handler)
+    (thunk)
+    (finally (remove-method z/object-action ::test-handler))))
+
+(deftest handler-using-handled-pre-empts-take
+  (with-test-handler #(z/handled "Blocked.")
+    (fn []
+      (is (= "Blocked." (output-of #(z/v-take :sword))))
+      (is (not= :winner (get-in @z/world [:objects :sword :location]))))))
+
+(deftest print-then-nil-handler-does-not-pre-empt-take
+  ;; The hazard `handled` exists to prevent: printing without returning truthy
+  ;; is RFALSE, so V-TAKE runs too — double output and the object is taken.
+  (with-test-handler #(println "Blocked.")
+    (fn []
+      (is (= "Blocked.\nTaken." (output-of #(z/v-take :sword))))
+      (is (= :winner (get-in @z/world [:objects :sword :location]))))))
