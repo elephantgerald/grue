@@ -336,6 +336,10 @@
 ;;; Returns the handler's value (truthy = skip the verb handler), or nil if the
 ;;; object has no :action. PRSI dispatch is not modeled yet (no verb takes an
 ;;; indirect object through dispatch-action), so :prsi is always nil for now.
+;;; Precondition: obj-key must be a resolved world object — get-object throws
+;;; otherwise. Verb handlers are safe because perform short-circuits :not-found
+;;; before dispatch; ZIL's APPLY on a missing ACTION no-ops instead, so wiring
+;;; this in ahead of parse resolution would need a guard.
 (defn dispatch-action [obj-key verb]
   (when-let [action (:action (get-object obj-key))]
     (object-action action {:prsa verb :prso obj-key :prsi nil})))
