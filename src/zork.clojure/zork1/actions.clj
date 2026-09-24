@@ -319,6 +319,9 @@
     (handled "It is securely anchored.")))
 
 ;;; Default — an :action value with no handler defined: fall through to the verb.
+;;; Most :action values in 1dungeon.edn have no handler yet, so this is the
+;;; common path. It is also where a misspelled defmethod key silently lands;
+;;; actions-test/every-object-action-handler-matches-an-edn-action guards that.
 (defmethod object-action :default [_ _] nil)
 
 ;;; ZIL: PERFORM's call to PRSO's ACTION routine. Looks up :action on the object

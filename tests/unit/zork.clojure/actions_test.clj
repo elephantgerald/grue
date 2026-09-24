@@ -94,3 +94,19 @@
     (fn []
       (is (= "Blocked.\nTaken." (output-of #(z/v-take :sword))))
       (is (= :winner (get-in @z/world [:objects :sword :location]))))))
+
+;;; ---------------------------------------------------------------------------
+;;; Handler/EDN consistency (#48 review S-1)
+;;; Unhandled :action values route to :default and silently fall through, so a
+;;; defmethod whose key doesn't match any :action value in 1dungeon.edn would
+;;; never fire and nothing would complain. The EDN values are transcribed from
+;;; ZIL; the defmethod keys are hand-typed — check the hand-typed side.
+;;; ---------------------------------------------------------------------------
+
+(deftest every-object-action-handler-matches-an-edn-action
+  (let [edn-actions (set (keep :action (vals (:objects @z/world))))
+        handlers    (disj (set (keys (methods z/object-action))) :default)]
+    (is (seq handlers))
+    (doseq [h handlers]
+      (is (contains? edn-actions h)
+          (str "object-action handler " h " matches no :action in 1dungeon.edn")))))
