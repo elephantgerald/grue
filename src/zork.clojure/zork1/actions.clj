@@ -318,7 +318,7 @@
                 (handled "The lamp has already burned out."))
     nil))
 
-;;; ZIL: ROUTINE MAILBOX-F (1actions.zil:2260). The PRSO check matters once
+;;; ZIL: ROUTINE MAILBOX-F (1actions.zil:2259). The PRSO check matters once
 ;;; PRSI dispatch exists: TAKE LEAFLET FROM MAILBOX applies MAILBOX-F with the
 ;;; mailbox as PRSI, and must not claim the mailbox is anchored.
 (defmethod object-action :mailbox-f [_ {:keys [prsa prso]}]
