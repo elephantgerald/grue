@@ -534,8 +534,11 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-TAKE — ZIL: ROUTINE V-TAKE + ITAKE
-;;; TRYTAKEBIT: call action handler first — if :m-handled, stop.
+;;; TRYTAKEBIT: run the object's ACTION first — truthy return, stop.
 ;;; TAKEBIT:    move to player inventory (:winner).
+;;; Known deviation: ZIL PERFORM applies PRSO's ACTION for every object before
+;;; V-TAKE runs, and V-TAKE/ITAKE never test TRYTAKEBIT (it is a parser and
+;;; V-PUT flag). Gating dispatch on :trytakebit here is a local shortcut.
 ;;; ---------------------------------------------------------------------------
 
 (defn v-take [obj-key]
@@ -545,7 +548,8 @@
       (= (:location obj) :winner)
       (println "You already have that.")
 
-      ;; TRYTAKEBIT — give the object's ACTION a chance to block it (ZIL ITAKE)
+      ;; TRYTAKEBIT — give the object's ACTION a chance to block it
+      ;; (ZIL: PERFORM's ACTION call, which precedes V-TAKE)
       (and (flag? obj :trytakebit)
            (dispatch-action obj-key :take))
       nil
