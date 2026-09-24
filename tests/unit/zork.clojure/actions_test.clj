@@ -19,7 +19,7 @@
 (deftest dispatch-returns-nil-for-action-without-handler
   ;; :sword has :action :sword-fcn but no defmethod → :default → nil (pass through)
   (testing "an :action value with no handler falls through"
-    (is (nil? (z/dispatch-action :sword :lamp-on)))))
+    (is (nil? (z/dispatch-action :sword :take)))))
 
 (deftest dispatch-returns-nil-for-unhandled-verb
   ;; lamp's :lantern handler handles :lamp-on/:lamp-off only; other verbs pass through
@@ -37,6 +37,7 @@
 (deftest lantern-passes-through-lamp-on-when-healthy
   ;; lamp is not burned out → handler returns nil so V-LAMP-ON runs
   (testing "healthy lamp-on falls through to the verb handler"
+    (is (not (z/flag? (z/get-object :lamp) :rmungbit)) "precondition: lamp not burned out")
     (is (nil? (z/dispatch-action :lamp :lamp-on)))))
 
 (deftest lantern-skips-lamp-off-when-burned-out
