@@ -58,6 +58,17 @@
   (testing "mailbox handler returns nil for verbs other than :take"
     (is (nil? (z/dispatch-action :mailbox :open)))))
 
+(deftest mailbox-passes-through-take-when-not-prso
+  ;; ZIL MAILBOX-F guards on <EQUAL? ,PRSO ,MAILBOX>: PERFORM also applies it
+  ;; when the mailbox is PRSI (TAKE LEAFLET FROM MAILBOX), where it must not fire.
+  (let [result (atom :unset)
+        out    (output-of #(reset! result (z/object-action :mailbox-f
+                                                           {:prsa :take
+                                                            :prso :leaflet
+                                                            :prsi :mailbox})))]
+    (is (nil? @result))
+    (is (= "" out))))
+
 ;;; ---------------------------------------------------------------------------
 ;;; handled — ZIL: <TELL ... CR> <RTRUE> pre-empt idiom (#48 review I-2)
 ;;; A handler that prints must also return truthy, or the verb runs as well.
@@ -75,7 +86,7 @@
   "Point :sword at a throwaway :action value whose :take branch is `f`, run
   `thunk`, then unregister the method."
   [f thunk]
-  (defmethod z/object-action ::test-handler [_ verb] (when (= verb :take) (f)))
+  (defmethod z/object-action ::test-handler [_ {:keys [prsa]}] (when (= prsa :take) (f)))
   (try
     (swap! z/world assoc-in [:objects :sword :action] ::test-handler)
     (thunk)

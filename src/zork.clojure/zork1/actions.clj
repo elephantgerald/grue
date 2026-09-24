@@ -290,7 +290,12 @@
 ;;; (ZIL RTRUE); nil means fall through to the verb handler (ZIL RFALSE).
 ;;; ---------------------------------------------------------------------------
 
-(defmulti object-action (fn [action _verb] action))
+;;; Handlers receive the parse state PERFORM exposes as ZIL globals, as a map:
+;;; {:prsa verb :prso direct-object :prsi indirect-object}. In ZIL, PERFORM
+;;; applies PRSI's ACTION before PRSO's (gmain.zil:214, 222), so an object's
+;;; handler can run when it is *not* the direct object — handlers that care
+;;; must check :prso/:prsi themselves, as ZIL routines check ,PRSO / ,PRSI.
+(defmulti object-action (fn [action _parse] action))
 
 ;;; ZIL: <TELL ... CR> <RTRUE> — the pre-empt idiom. A handler that prints its
 ;;; own response must also return truthy, or the verb handler runs too (double
@@ -305,17 +310,19 @@
 ;;; through so the verb handler runs. LANTERN is lamp-specific in ZIL, so this
 ;;; references ,LAMP directly. THROW/EXAMINE branches are deferred until those
 ;;; verbs are implemented.
-(defmethod object-action :lantern [_ verb]
-  (case verb
+(defmethod object-action :lantern [_ {:keys [prsa]}]
+  (case prsa
     :lamp-on  (when (flag? (get-object :lamp) :rmungbit)
                 (handled "A burned-out lamp won't light."))
     :lamp-off (when (flag? (get-object :lamp) :rmungbit)
                 (handled "The lamp has already burned out."))
     nil))
 
-;;; ZIL: ROUTINE MAILBOX-F (1actions.zil:2260)
-(defmethod object-action :mailbox-f [_ verb]
-  (when (= verb :take)
+;;; ZIL: ROUTINE MAILBOX-F (1actions.zil:2260). The PRSO check matters once
+;;; PRSI dispatch exists: TAKE LEAFLET FROM MAILBOX applies MAILBOX-F with the
+;;; mailbox as PRSI, and must not claim the mailbox is anchored.
+(defmethod object-action :mailbox-f [_ {:keys [prsa prso]}]
+  (when (and (= prsa :take) (= prso :mailbox))
     (handled "It is securely anchored.")))
 
 ;;; Default — an :action value with no handler defined: fall through to the verb.
@@ -325,11 +332,13 @@
 (defmethod object-action :default [_ _] nil)
 
 ;;; ZIL: PERFORM's call to PRSO's ACTION routine. Looks up :action on the object
-;;; and invokes the matching object-action handler. Returns the handler's value
-;;; (truthy = skip the verb handler), or nil if the object has no :action.
+;;; and invokes the matching object-action handler with obj-key as PRSO.
+;;; Returns the handler's value (truthy = skip the verb handler), or nil if the
+;;; object has no :action. PRSI dispatch is not modeled yet (no verb takes an
+;;; indirect object through dispatch-action), so :prsi is always nil for now.
 (defn dispatch-action [obj-key verb]
   (when-let [action (:action (get-object obj-key))]
-    (object-action action verb)))
+    (object-action action {:prsa verb :prso obj-key :prsi nil})))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-LOOK-INSIDE — ZIL: ROUTINE V-LOOK-INSIDE
