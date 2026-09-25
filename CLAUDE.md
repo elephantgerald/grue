@@ -34,7 +34,7 @@ ZIL is a Lisp dialect, making Clojure a natural and fun translation target.
 | `<SETG var val>` | `(reset! var val)` |
 | `<TELL "str" CR>` | `(println "str")` |
 | `<REPEAT () body>` | `(loop [] ... (recur))` |
-| `<VERB? v1 v2>` | `(#{:v1 :v2} @prsa)` |
+| `<VERB? v1 v2>` | `(#{:v1 :v2} prsa)` — verb passed in, not a global |
 | `<FSET? obj flag>` | flag keyword in a set in the object map |
 
 ## Core Game State
@@ -44,6 +44,12 @@ The ZIL parser/action loop uses these globals:
 - `PRSO` — direct object
 - `PRSI` — indirect object
 - `HERE` / `WINNER` — current room / current actor
+
+In Clojure, `HERE`/`WINNER` are atoms (`@here`, `@winner`), but PRSA/PRSO/PRSI
+are **passed as arguments**, not globals: verb handlers take object keys, and
+`object-action` handlers receive `{:prsa :prso :prsi}`. ZIL PERFORM applies
+PRSI's ACTION before PRSO's, so a handler must check `:prso`/`:prsi` itself
+when it cares which role its object is playing.
 
 ## Development Notes
 
@@ -55,13 +61,23 @@ The ZIL parser/action loop uses these globals:
 
 The integration test assertions in `tests/integration/` are not guesses or
 approximations — they are the exact output of the original Zork I binary
-(revision 88, serial 840726) verified by hand in DOSBox.
+(revision 88, serial 840726), verified by running the original story file.
 
 **If a test fails, the code is wrong. The test is almost certainly not wrong.**
 
 Do not modify an integration test assertion to make it pass. Investigate why
 the code no longer produces the output the original game produces. The only
 legitimate reason to change an assertion is if you can demonstrate with a fresh
-DOSBox session that the original game's output differs from what the test
-expects — which would mean the test was transcribed incorrectly in the first
-place.
+run of the original that its output differs from what the test expects — which
+would mean the test was transcribed incorrectly in the first place. Cite the
+run in the test or commit message.
+
+**Verifying against the original:** use `dfrotz` (preferred over DOSBox) on the
+r88/840726 story file from the GOG install, piping commands in:
+
+```bash
+printf 'open mailbox\nscore\n' | dfrotz -m -p -w 200 \
+  "/mnt/c/Program Files (x86)/GOG Galaxy/Games/Zork/DATA/ZORK1.DAT"
+```
+
+`score` prints the move count, which is how turn-cost behavior is checked.
