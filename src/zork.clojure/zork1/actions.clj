@@ -111,6 +111,15 @@
           (= power 0)  (when visible? (println "The lamp is nearly out.")))))))
 
 ;;; ---------------------------------------------------------------------------
+;;; CLOCKER — ZIL: ROUTINE CLOCKER (gclock.zil:43). One game turn: run the
+;;; interrupts (only the lamp is modeled so far) and increment MOVES.
+;;; ---------------------------------------------------------------------------
+
+(defn clocker! []
+  (swap! turns inc)
+  (tick-lamp!))
+
+;;; ---------------------------------------------------------------------------
 ;;; V-LAMP-ON / V-LAMP-OFF — ZIL: gverbs.zil:786 / gverbs.zil:771
 ;;; The LANTERN object handler runs first via dispatch-action (#48): its
 ;;; burned-out (RMUNGBIT) branches return truthy to pre-empt these verbs.
@@ -588,7 +597,10 @@
 (defn v-drop [obj-key]
   (let [obj (get-object obj-key)]
     (if (not= (:location obj) :winner)
-      (println "You're not holding that.")
+      ;; ZIL: DROP's syntax has HAVE, so the parser rejects this before V-DROP
+      ;; runs — a parser failure, which costs no turn.
+      (do (println "You're not holding that.")
+          :parse-fail)
       (do
         (swap! world assoc-in [:objects obj-key :location] @here)
         (println "Dropped.")
@@ -599,8 +611,11 @@
 ;;; ---------------------------------------------------------------------------
 
 (defn v-wait []
+  ;; ZIL V-WAIT (gverbs.zil:1514) runs CLOCKER 3 times, then sets CLOCK-WAIT
+  ;; so the main loop's own CLOCKER call is skipped.
   (println "Time passes.")
-  :turn)
+  (dotimes [_ 3] (clocker!))
+  :clock-wait)
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-DIAGNOSE — ZIL: ROUTINE V-DIAGNOSE

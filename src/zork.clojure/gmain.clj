@@ -5,47 +5,59 @@
 ;;; ---------------------------------------------------------------------------
 ;;; Verb dispatch — mirrors PERFORM in GMAIN.ZIL
 ;;;
-;;; Returns :turn when the command consumed a move (successful state-changing
-;;; action), :quit when the player quits, or nil otherwise.
-;;; Increments actions/turns on :turn before returning.
+;;; Turn rule — ZIL MAIN-LOOP-1 (gmain.zil:169-172): once the parse succeeds,
+;;; CLOCKER runs whether or not the action succeeded, except for meta-verbs.
+;;; Handlers signal the two cases that skip it:
+;;;   :parse-fail — the ZIL parser would have rejected the command (orphaned
+;;;                 object, HAVE check), so P-WON is false
+;;;   :clock-wait — the handler ran the clock itself (ZIL CLOCK-WAIT, V-WAIT)
+;;; :quit ends the game. Any other return value is ignored for turn counting.
 ;;; ---------------------------------------------------------------------------
 
 (def last-cmd (atom nil))
 
+;;; ZIL: the no-CLOCKER verb list in MAIN-LOOP-1. Only these are implemented.
+(def meta-verbs #{:score :quit})
+
 (declare perform)
+
+;;; ZIL parser orphan ("What do you want to take?") — P-WON is false.
+(defn- orphan [msg]
+  (println msg)
+  :parse-fail)
 
 (defn- dispatch [{:keys [verb obj dir] :as cmd}]
   (case verb
     :look      (if obj
-                 (println "That sentence isn't one I recognize.")
+                 (orphan "That sentence isn't one I recognize.")
                  (actions/v-look))
     :examine   (if obj
                  (actions/v-examine obj)
-                 (println "What do you want to examine?"))
+                 (orphan "What do you want to examine?"))
     :look-in   (if obj
                  (actions/v-look-inside obj)
-                 (println "What do you want to look in?"))
+                 (orphan "What do you want to look in?"))
     :open      (if obj
                  (actions/v-open obj)
-                 (println "What do you want to open?"))
+                 (orphan "What do you want to open?"))
     :read      (if obj
                  (actions/v-read obj)
-                 (println "What do you want to read?"))
+                 (orphan "What do you want to read?"))
     :take      (if obj
                  (actions/v-take obj)
-                 (println "What do you want to take?"))
+                 (orphan "What do you want to take?"))
     :put       (if (and obj (:container cmd))
                  (actions/v-put obj (:container cmd))
-                 (println "What do you want to put where?"))
+                 (orphan "What do you want to put where?"))
     :drop      (if obj
                  (actions/v-drop obj)
-                 (println "What do you want to drop?"))
+                 (orphan "What do you want to drop?"))
     :close     (if obj
                  (actions/v-close obj)
-                 (println "What do you want to close?"))
+                 (orphan "What do you want to close?"))
     :move      (if obj
                  (actions/v-move obj)
-                 (println "What do you want to move?"))
+                 (orphan "What do you want to move?"))
     :climb     (actions/v-walk :up)
     :wait      (actions/v-wait)
     :diagnose  (actions/v-diagnose)
@@ -53,15 +65,15 @@
     :inventory (actions/v-inventory)
     :go        (if dir
                  (actions/v-walk dir)
-                 (println "Which direction?"))
+                 (orphan "Which direction?"))
     :lamp-on   (if obj
                  (actions/v-lamp-on obj)
-                 (println "What do you want to light?"))
+                 (orphan "What do you want to light?"))
     :lamp-off  (if obj
                  (actions/v-lamp-off obj)
-                 (println "What do you want to extinguish?"))
+                 (orphan "What do you want to extinguish?"))
     :quit      (do (println "Your score is 0. Goodbye.") :quit)
-    :unknown   (println "I don't understand that.")))
+    :unknown   (orphan "I don't understand that.")))
 
 (defn perform [cmd]
   (cond
@@ -81,14 +93,14 @@
 
     ;; All other verbs — record for again (every parsed command, even failed
     ;; actions; only :unknown parse failures are excluded via AGAIN check),
-    ;; dispatch, then count the turn on success.
+    ;; dispatch, then run the clock per the turn rule above.
     :else
     (do
       (reset! last-cmd cmd)
       (let [result (dispatch cmd)]
-        (when (= result :turn)
-          (swap! actions/turns inc)
-          (actions/tick-lamp!))
+        (when-not (or (#{:parse-fail :clock-wait :quit} result)
+                      (meta-verbs (:verb cmd)))
+          (actions/clocker!))
         result))))
 
 ;;; ---------------------------------------------------------------------------
