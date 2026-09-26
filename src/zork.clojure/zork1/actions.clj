@@ -22,7 +22,7 @@
 ;;; World loading
 ;;; ---------------------------------------------------------------------------
 
-(declare update-lit! score-upd v-look)
+(declare update-lit! score-upd v-look dispatch-action)
 
 (defn load-world! []
   (reset! world (edn/read-string (slurp (io/resource "1dungeon.edn"))))
@@ -111,20 +111,31 @@
           (= power 0)  (when visible? (println "The lamp is nearly out.")))))))
 
 ;;; ---------------------------------------------------------------------------
+;;; CLOCKER — ZIL: ROUTINE CLOCKER (gclock.zil:43). One game turn: run the
+;;; interrupts (only the lamp is modeled so far) and increment MOVES.
+;;; ---------------------------------------------------------------------------
+
+(defn clocker! []
+  (swap! turns inc)
+  (tick-lamp!))
+
+;;; ---------------------------------------------------------------------------
 ;;; V-LAMP-ON / V-LAMP-OFF — ZIL: gverbs.zil:786 / gverbs.zil:771
-;;; LANTERN object handler (1actions.zil:2237) is folded in here.
+;;; The LANTERN object handler runs first via dispatch-action (#48): its
+;;; burned-out (RMUNGBIT) branches return truthy to pre-empt these verbs.
 ;;; ---------------------------------------------------------------------------
 
 (defn v-lamp-on [obj-key]
   (let [obj (get-object obj-key)]
     (cond
+      ;; ZIL: object ACTION (LANTERN) runs before V-LAMP-ON; truthy = pre-empt.
+      (dispatch-action obj-key :lamp-on)
+      nil
+
       (not (flag? obj :lightbit))
       (if (flag? obj :burnbit)
         (println (str "If you wish to burn the " (:desc obj) ", you should say so."))
         (println "You can't turn that on."))
-
-      (flag? obj :rmungbit)
-      (println "A burned-out lamp won't light.")
 
       (flag? obj :onbit)
       (println "It is already on.")
@@ -142,11 +153,12 @@
 (defn v-lamp-off [obj-key]
   (let [obj (get-object obj-key)]
     (cond
+      ;; ZIL: object ACTION (LANTERN) runs before V-LAMP-OFF; truthy = pre-empt.
+      (dispatch-action obj-key :lamp-off)
+      nil
+
       (not (flag? obj :lightbit))
       (println "You can't turn that off.")
-
-      (flag? obj :rmungbit)
-      (println "The lamp has already burned out.")
 
       (not (flag? obj :onbit))
       (println "It is already off.")
@@ -278,20 +290,72 @@
 (defmethod room-action :default [_ _] nil)
 
 ;;; ---------------------------------------------------------------------------
-;;; Object action handlers — ZIL: ROUTINE MAILBOX-F ()
-;;; Dispatch on object key, called with the current verb keyword.
-;;; Return :m-handled to stop further dispatch, nil to pass through.
+;;; Object action handlers — ZIL: object ACTION property (e.g. ROUTINE LANTERN)
+;;;
+;;; In ZIL, PERFORM calls an object's ACTION routine before the verb's default
+;;; handler; RTRUE pre-empts the default, RFALSE lets it run. We dispatch on the
+;;; object's :action property value (same pattern as room-action) — e.g.
+;;; :lantern, :mailbox-f in 1dungeon.edn. A truthy return means the handler took over
+;;; (ZIL RTRUE); nil means fall through to the verb handler (ZIL RFALSE).
 ;;; ---------------------------------------------------------------------------
 
-(defmulti object-action (fn [obj-key _verb] obj-key))
+;;; Handlers receive the parse state PERFORM exposes as ZIL globals, as a map:
+;;; {:prsa verb :prso direct-object :prsi indirect-object}. In ZIL, PERFORM
+;;; applies PRSI's ACTION before PRSO's (gmain.zil:214, 222), so an object's
+;;; handler can run when it is *not* the direct object — handlers that care
+;;; must check :prso/:prsi themselves, as ZIL routines check ,PRSO / ,PRSI.
+(defmulti object-action (fn [action _parse] action))
 
-(defmethod object-action :mailbox [_ verb]
-  (when (= verb :take)
-    (println "It is securely anchored.")
-    :m-handled))
+;;; ZIL: <TELL ... CR> <RTRUE> — the pre-empt idiom. A handler that prints its
+;;; own response must also return truthy, or the verb handler runs too (double
+;;; output, and e.g. a wrongful take). `handled` makes the two inseparable:
+;;; write blocking branches as (handled "msg"), never a bare println.
+(defn handled [& msg]
+  (apply println msg)
+  :m-handled)
 
-;;; Default — object has no special handler
+;;; ZIL: ROUTINE LANTERN (1actions.zil:2230). Only the RMUNGBIT (burned-out)
+;;; cases return RTRUE to pre-empt V-LAMP-ON/V-LAMP-OFF; everything else falls
+;;; through so the verb handler runs. LANTERN is lamp-specific in ZIL, so this
+;;; references ,LAMP directly. THROW/EXAMINE branches are deferred until those
+;;; verbs are implemented.
+;;; The healthy branches are not pure pass-throughs in ZIL: they ENABLE/DISABLE
+;;; the I-LANTERN fuel interrupt before returning RFALSE. Here that is modeled
+;;; by tick-lamp!, which only counts down while the lamp has :onbit — set and
+;;; cleared by V-LAMP-ON/V-LAMP-OFF — so this handler returns nil for them.
+(defmethod object-action :lantern [_ {:keys [prsa]}]
+  (case prsa
+    :lamp-on  (when (flag? (get-object :lamp) :rmungbit)
+                (handled "A burned-out lamp won't light."))
+    :lamp-off (when (flag? (get-object :lamp) :rmungbit)
+                (handled "The lamp has already burned out."))
+    nil))
+
+;;; ZIL: ROUTINE MAILBOX-F (1actions.zil:2259). The PRSO check matters once
+;;; PRSI dispatch exists: TAKE LEAFLET FROM MAILBOX applies MAILBOX-F with the
+;;; mailbox as PRSI, and must not claim the mailbox is anchored.
+(defmethod object-action :mailbox-f [_ {:keys [prsa prso]}]
+  (when (and (= prsa :take) (= prso :mailbox))
+    (handled "It is securely anchored.")))
+
+;;; Default — an :action value with no handler defined: fall through to the verb.
+;;; Most :action values in 1dungeon.edn have no handler yet, so this is the
+;;; common path. It is also where a misspelled defmethod key silently lands;
+;;; actions-test/every-object-action-handler-matches-an-edn-action guards that.
 (defmethod object-action :default [_ _] nil)
+
+;;; ZIL: PERFORM's call to PRSO's ACTION routine. Looks up :action on the object
+;;; and invokes the matching object-action handler with obj-key as PRSO.
+;;; Returns the handler's value (truthy = skip the verb handler), or nil if the
+;;; object has no :action. PRSI dispatch is not modeled yet (no verb takes an
+;;; indirect object through dispatch-action), so :prsi is always nil for now.
+;;; Precondition: obj-key must be a resolved world object — get-object throws
+;;; otherwise. Verb handlers are safe because perform short-circuits :not-found
+;;; before dispatch; ZIL's APPLY on a missing ACTION no-ops instead, so wiring
+;;; this in ahead of parse resolution would need a guard.
+(defn dispatch-action [obj-key verb]
+  (when-let [action (:action (get-object obj-key))]
+    (object-action action {:prsa verb :prso obj-key :prsi nil})))
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-LOOK-INSIDE — ZIL: ROUTINE V-LOOK-INSIDE
@@ -483,8 +547,11 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-TAKE — ZIL: ROUTINE V-TAKE + ITAKE
-;;; TRYTAKEBIT: call action handler first — if :m-handled, stop.
+;;; TRYTAKEBIT: run the object's ACTION first — truthy return, stop.
 ;;; TAKEBIT:    move to player inventory (:winner).
+;;; Known deviation: ZIL PERFORM applies PRSO's ACTION for every object before
+;;; V-TAKE runs, and V-TAKE/ITAKE never test TRYTAKEBIT (it is a parser and
+;;; V-PUT flag). Gating dispatch on :trytakebit here is a local shortcut.
 ;;; ---------------------------------------------------------------------------
 
 (defn v-take [obj-key]
@@ -494,9 +561,10 @@
       (= (:location obj) :winner)
       (println "You already have that.")
 
-      ;; TRYTAKEBIT — give the object a chance to block it
+      ;; TRYTAKEBIT — give the object's ACTION a chance to block it
+      ;; (ZIL: PERFORM's ACTION call, which precedes V-TAKE)
       (and (flag? obj :trytakebit)
-           (= :m-handled (object-action obj-key :take)))
+           (dispatch-action obj-key :take))
       nil
 
       ;; TAKEBIT — take it; award any pickup score (ZIL: SCORE-OBJ in ITAKE)
@@ -529,7 +597,10 @@
 (defn v-drop [obj-key]
   (let [obj (get-object obj-key)]
     (if (not= (:location obj) :winner)
-      (println "You're not holding that.")
+      ;; ZIL: DROP's syntax has HAVE, so the parser rejects this before V-DROP
+      ;; runs — a parser failure, which costs no turn.
+      (do (println "You're not holding that.")
+          :parse-fail)
       (do
         (swap! world assoc-in [:objects obj-key :location] @here)
         (println "Dropped.")
@@ -540,8 +611,11 @@
 ;;; ---------------------------------------------------------------------------
 
 (defn v-wait []
+  ;; ZIL V-WAIT (gverbs.zil:1514) runs CLOCKER 3 times, then sets CLOCK-WAIT
+  ;; so the main loop's own CLOCKER call is skipped.
   (println "Time passes.")
-  :turn)
+  (dotimes [_ 3] (clocker!))
+  :clock-wait)
 
 ;;; ---------------------------------------------------------------------------
 ;;; V-DIAGNOSE — ZIL: ROUTINE V-DIAGNOSE

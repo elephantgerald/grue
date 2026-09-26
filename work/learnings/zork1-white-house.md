@@ -56,17 +56,46 @@ ZIL JIGS-UP (1actions.zil:4046): prints death message, deducts 10 score, prints 
 
 ZIL GOTO prints "You have moved into a dark place." BEFORE V-FIRST-LOOK (before room description). Our implementation prints it AFTER `arrive!` (which includes V-FIRST-LOOK). This means on a lit→dark move, you see "It is pitch black. You are likely to be eaten by a grue." before "You have moved into a dark place." — the opposite of ZIL order. Fixing this requires splitting `arrive!` into separate M-ENTER and display phases. Accepted as a known deviation.
 
-## Object Action Handlers: Fold Until Dispatch System Exists (#48)
-*From #14 — light / extinguish · 2026-04-14*
+## Object Action Handlers: Write Them as object-action Methods
+*From #14 — light / extinguish · 2026-04-14 · updated #48 · 2026-09-25*
 
-ZIL objects with an `ACTION` property have that routine called before the generic verb handler fires (RTRUE skips the verb handler; RFALSE lets it run). The `:action` keys in `1dungeon.edn` (`:lantern`, `:mailbox-f`, `:troll-fcn`, etc.) reflect this. No Clojure dispatch system exists yet — the burned-out lamp checks from LANTERN (1actions.zil:2230) are folded directly into `v-lamp-on`/`v-lamp-off`. When implementing new verbs, fold the target object's ACTION logic into the verb handler until #48 (action handler dispatch) is implemented. Do not leave `:action` keys acting as documentation-only dead weight.
+ZIL objects with an `ACTION` property have that routine called before the generic verb handler fires (RTRUE skips the verb handler; RFALSE lets it run). Since #48, object ACTION logic goes in an `object-action` defmethod keyed on the object's `:action` value in `1dungeon.edn`. Verb handlers call `(dispatch-action obj-key verb)` first and stop on a truthy result. Do not fold ACTION logic into verb handlers, and do not leave `:action` values as documentation-only dead weight.
 
-## V-LAMP-ON / V-LAMP-OFF: Turn Consumption on Failed Actions (open question)
-*From #14 — light / extinguish · 2026-04-14*
+*Superseded "fold the target object's ACTION logic into the verb handler until #48 is implemented" on 2026-09-25 — #48 (PR #51) implemented dispatch.*
 
-ZIL's V-LAMP-ON and V-LAMP-OFF both end with `<RTRUE>`, which in ZIL's main loop advances the turn counter regardless of which branch fired. Our implementation returns `nil` (not `:turn`) for failed actions ("It is already on/off", "A burned-out lamp won't light.", "You can't turn that on/off"), matching the pattern used by all other verb handlers. Whether failed actions should consume a turn requires FROTZ verification. Current assumption: they do not.
+## Failed Actions DO Consume a Turn in the Original (verified)
+*From #14 — light / extinguish · 2026-04-14 · verified during #48 audit · 2026-09-25*
+
+Verified against the original r88/840726 story file (dfrotz, `score` move counts): once a command parses and reaches its verb/ACTION handler, it costs a turn **whether or not the action succeeds**. This holds for all six failed V-LAMP-ON/OFF outcomes ("It is already on.", "It is already off.", "You can't turn that on.", "You can't turn that off.", "A burned-out lamp won't light.", "The lamp has already burned out."). It also holds for "It is securely anchored." (take mailbox), "It is already closed.", a second `open mailbox`, "You already have that.", and "You can't see any foobar here!". Failures inside the parser do NOT cost a turn: `drop leaflet` when not holding it, and `turn off rug` ("You don't have the carpet."), both stay at 0 moves. The rule lives in ZIL MAIN-LOOP-1 (gmain.zil:169-172): CLOCKER runs whenever P-WON, except for meta-verbs. Fixed in 96d8d67: `perform` now runs `clocker!` for every parsed command unless the handler returns `:parse-fail` (orphan or HAVE check) or `:clock-wait` (V-WAIT runs the clock 3× itself), or the verb is a meta-verb. Handler `:turn` returns no longer drive the clock. New handlers only need to return `:parse-fail` for failures the ZIL parser would have caught.
+
+*Superseded "Current assumption: [failed actions] do not [consume a turn]" on 2026-09-25.*
+
+## Object ACTION Dispatch Mirrors room-action: Keyed on :action Value, Truthy = RTRUE
+*From #48 — Object action handler dispatch · 2026-06-27*
+
+`dispatch-action obj-key verb` looks up `:action` on the object and calls the `object-action` multimethod, which dispatches on the `:action` **value** (`:lantern`, `:mailbox-f`) — exactly the `room-action` pattern (which dispatches on the room's `:action` value). A truthy handler return pre-empts the verb handler (ZIL RTRUE); `nil` falls through (RFALSE). Handlers receive the parse state as a map, `[action {:prsa :prso :prsi}]`, named after ZIL's PRS globals. This matters because ZIL PERFORM applies **PRSI's ACTION before PRSO's** (gmain.zil:214, 222), so a handler can run when its object is not the direct object. MAILBOX-F's `<EQUAL? ,PRSO ,MAILBOX>` guard exists for TAKE LEAFLET FROM MAILBOX. Passing only the dispatched obj-key can't express that guard. Handlers for objects ZIL names directly (LANTERN uses `,LAMP`) keep referencing them by key. Blocking branches use `(handled "msg")`, which prints and returns truthy in one call, so a print-then-nil mistake can't double-output. A unit test checks every handler key against the EDN `:action` values to catch typos that would silently hit `:default`. Most `:action` values still have no handler → `:default` returns nil → verb runs. Decision (2026-09-25): keep this argument-passing style rather than PRS atoms.
+
+*Superseded "the multimethod signature is `[action verb]` (no obj-key passed)" on 2026-09-25 — changed in fbe4f32 (#48 review S-2).*
+
+## #48 Boundary: lamp-power Reset Stays in v-lamp-on, Not the :lantern Handler
+*From #48 — Object action handler dispatch · 2026-06-27*
+
+When folding LANTERN into the dispatch system, only the burned-out (RMUNGBIT) checks moved to the `:lantern` handler — those return RTRUE to pre-empt the verb. The `lamp-power` reset to 185 stayed in `v-lamp-on`'s success branch, even though ZIL's `<ENABLE <INT I-LANTERN>>` (the fuel-countdown enable) technically lives in LANTERN. Reason: that LANTERN branch returns RFALSE (`<>`), so `v-lamp-on` runs regardless — keeping the reset there is behaviorally identical and avoids expanding scope past the issue's AC. If the lamp's ACTION ever needs to short-circuit on turn-on, revisit this.
+
+*Update 2026-09-25:* the reset itself is a bug, wherever it lives. Verified in the original: fuel is initialized once (`GO`: `QUEUE I-LANTERN 200`) and carries over across off/on. Lit-turn thresholds are 200 / 300 / 370 / 385 (burn-out: "You'd better have more light than from the brass lantern."). The turn-on turn uses fuel; the turn-off turn doesn't. Tracked as #52.
 
 ## Container Contents Display is a Known Deviation (tracked as #46)
 *From #3 — World objects · 2026-04-13*
 
 The original Zork I shows items inside/on open containers when looking at a room (e.g., the bottle and sack on the kitchen table, the egg through the open nest in Up a Tree). Our `describe-objects` only calls `objects-in @here` — it does not recurse into open containers. This is a tracked deviation: see issue #46. Integration tests for rooms with container-held items should use `includes?` checks rather than exact string matching to avoid false failures when this is eventually implemented.
+
+## Integration Tests Can Be Wrong: Re-verify Against the Original with dfrotz
+*From #48 audit · 2026-09-25*
+
+`turn_counter_test.clj` was believed verified, but 14 of 24 scenarios disagreed with the original r88/840726 when replayed in dfrotz, and 2 used inputs (`xyzzy`, `foobar`) that are real Zork vocabulary, so they didn't test what their names claimed. Before trusting or writing a turn/output assertion, replay it with dfrotz (see CLAUDE.md). When picking a "nonsense" word for an unknown-word test, confirm the original answers "I don't know the word".
+
+## Open Questions
+
+- **Known-but-absent objects.** The original distinguishes an unknown word ("I don't know the word "qwxzt"." — 0 moves) from a known word for an object that isn't here ("You can't see any foobar here!" — 1 move, via NOT-HERE-OBJECT in PERFORM). Our parser has no vocabulary, so `:not-found` covers both, with "I don't see that here." and 0 moves. Fixing this needs a parser vocabulary.
+- **Message-text mismatches found in passing:** V-WAIT prints "Time passes..." in the original (ours: "Time passes."); the DROP HAVE-check says "You don't have that!" (ours: "You're not holding that.").
+- **`again` in dfrotz.** `north` then `again` printed "Maximum verbosity." rather than replaying the move, while `wait; again` replayed correctly. Probably a dfrotz input-buffer quirk; `again` text assertions were left unchanged.
