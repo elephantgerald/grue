@@ -307,3 +307,17 @@
   (reset! z/here :troll-room)
   (let [out (output-of #(do! "go west"))]
     (is (clojure.string/includes? out "The troll fends you off with a menacing gesture."))))
+
+;;; ---------------------------------------------------------------------------
+;;; TAKE — TRYTAKEBIT fall-through (#48)
+;;; The sword has :trytakebit and :action :sword-fcn. ZIL SWORD-FCN
+;;; (1actions.zil:2432) returns RFALSE on TAKE, so V-TAKE runs normally.
+;;; Guards the fall-through direction of v-take's dispatch-action check —
+;;; the mailbox covers the pre-empt direction (west_of_house_test).
+;;; ---------------------------------------------------------------------------
+
+(deftest take-trytakebit-object-with-no-blocking-handler-succeeds
+  (reset! z/here :living-room)
+  (z/update-lit!)
+  (is (= "Taken." (output-of #(do! "take sword"))))
+  (is (= :winner (get-in @z/world [:objects :sword :location]))))

@@ -20,6 +20,15 @@
 (use-fixtures :each (fn [f] (reset-world!) (f)))
 
 ;;; ---------------------------------------------------------------------------
+;;; Turn rule — ZIL MAIN-LOOP-1 (gmain.zil:169-172): if the parse succeeded
+;;; (P-WON), CLOCKER runs and MOVES increments REGARDLESS of whether the action
+;;; succeeded — except for meta-verbs (SCORE, VERBOSE, BRIEF, VERSION, ...).
+;;; Parser failures (unknown word, missing object, HAVE check) cost nothing.
+;;; All counts below verified against the original r88/840726 via dfrotz
+;;; (2026-09-25), which superseded the earlier "failed actions are free" model.
+;;; ---------------------------------------------------------------------------
+
+;;; ---------------------------------------------------------------------------
 ;;; Initial state
 ;;; ---------------------------------------------------------------------------
 
@@ -41,18 +50,18 @@
   (is (= 2 @z/turns)))
 
 ;;; ---------------------------------------------------------------------------
-;;; Failed movement does NOT cost a turn
+;;; Failed movement still costs a turn (the parse succeeded)
 ;;; ---------------------------------------------------------------------------
 
-(deftest blocked-string-exit-costs-no-turn
-  ;; "The door is boarded and you can't remove the boards."
+(deftest blocked-string-exit-costs-one-turn
+  ;; "The door is boarded and you can't remove the boards." — original: 1 move
   (do! "east")
-  (is (= 0 @z/turns)))
+  (is (= 1 @z/turns)))
 
-(deftest impossible-direction-costs-no-turn
-  ;; "You can't go that way."
+(deftest impossible-direction-costs-one-turn
+  ;; "You can't go that way." — original: 1 move
   (do! "up")
-  (is (= 0 @z/turns)))
+  (is (= 1 @z/turns)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Successful object interaction costs a turn
@@ -90,68 +99,117 @@
   (do! "read leaflet")
   (is (= 3 @z/turns)))
 
-(deftest wait-costs-one-turn
+(deftest wait-costs-three-turns
+  ;; ZIL V-WAIT (gverbs.zil:1514) runs CLOCKER 3 times itself, then sets
+  ;; CLOCK-WAIT so the main loop's CLOCKER is skipped — original: 3 moves
   (do! "wait")
-  (is (= 1 @z/turns)))
+  (is (= 3 @z/turns)))
 
 ;;; ---------------------------------------------------------------------------
-;;; Failed object interaction does NOT cost a turn
+;;; Failed object interaction still costs a turn (the parse succeeded)
 ;;; ---------------------------------------------------------------------------
 
-(deftest open-already-open-costs-no-extra-turn
+(deftest open-already-open-costs-a-turn
+  ;; original: 2 moves
   (do! "open mailbox")
   (do! "open mailbox")
-  (is (= 1 @z/turns)))
-
-(deftest close-already-closed-costs-no-turn
-  (do! "close mailbox")
-  (is (= 0 @z/turns)))
-
-(deftest take-unrecognised-costs-no-turn
-  (do! "take foobar")
-  (is (= 0 @z/turns)))
-
-(deftest take-anchored-costs-no-turn
-  ;; mailbox has :trytakebit — action handler blocks it
-  (do! "take mailbox")
-  (is (= 0 @z/turns)))
-
-(deftest take-already-held-costs-no-turn
-  (do! "open mailbox")
-  (do! "take leaflet")
-  (do! "take leaflet")
   (is (= 2 @z/turns)))
 
+(deftest close-already-closed-costs-a-turn
+  ;; "It is already closed." — original: 1 move
+  (do! "close mailbox")
+  (is (= 1 @z/turns)))
+
+(deftest take-anchored-costs-a-turn
+  ;; "It is securely anchored." — the object ACTION pre-empts, still 1 move
+  (do! "take mailbox")
+  (is (= 1 @z/turns)))
+
+(deftest take-already-held-costs-a-turn
+  ;; "You already have that." — original: 3 moves
+  (do! "open mailbox")
+  (do! "take leaflet")
+  (do! "take leaflet")
+  (is (= 3 @z/turns)))
+
+(deftest failed-lamp-actions-each-cost-a-turn
+  ;; All six failed V-LAMP-ON/OFF outcomes cost a move in the original,
+  ;; including the two LANTERN pre-empts ("burned-out").
+  (reset! z/here :living-room)
+  (z/update-lit!)
+  (testing "It is already off."
+    (do! "take lamp")                       ; 1
+    (do! "extinguish lamp")                 ; 2
+    (is (= 2 @z/turns)))
+  (testing "It is already on."
+    (do! "light lamp")                      ; 3
+    (do! "light lamp")                      ; 4
+    (is (= 4 @z/turns)))
+  (testing "You can't turn that on/off."
+    (do! "take sword")                      ; 5
+    (do! "light sword")                     ; 6
+    (do! "extinguish sword")                ; 7
+    (is (= 7 @z/turns)))
+  (testing "burned-out lamp pre-empted by LANTERN"
+    (swap! z/world update-in [:objects :lamp :flags] #(-> % (disj :onbit) (conj :rmungbit)))
+    (do! "light lamp")                      ; 8
+    (do! "extinguish lamp")                 ; 9
+    (is (= 9 @z/turns))))
+
+;;; ---------------------------------------------------------------------------
+;;; Parser failures do NOT cost a turn (P-WON false → no CLOCKER)
+;;; ---------------------------------------------------------------------------
+
+(deftest take-unknown-word-costs-no-turn
+  ;; "I don't know the word "qwxzt"." — original: 0 moves. (Was "take foobar",
+  ;; but foobar is in Zork's vocabulary: the original says "You can't see any
+  ;; foobar here!" and charges a move. Our parser has no vocabulary, so it
+  ;; can't distinguish known-but-absent from unknown yet.)
+  (do! "take qwxzt")
+  (is (= 0 @z/turns)))
+
+(deftest take-with-no-object-costs-no-turn
+  ;; "What do you want to take?" — parser orphan, original: 0 moves
+  (do! "take")
+  (is (= 0 @z/turns)))
+
 (deftest drop-not-holding-costs-no-turn
+  ;; ZIL: the parser's HAVE check ("You don't have that!") — original: 0 moves
   (do! "drop leaflet")
   (is (= 0 @z/turns)))
 
 ;;; ---------------------------------------------------------------------------
-;;; Meta-commands do NOT cost a turn
+;;; Observation verbs cost a turn — they are not on ZIL's meta-verb list
 ;;; ---------------------------------------------------------------------------
 
-(deftest look-costs-no-turn
+(deftest look-costs-a-turn
   (do! "look")
-  (is (= 0 @z/turns)))
+  (is (= 1 @z/turns)))
 
-(deftest examine-costs-no-turn
+(deftest examine-costs-a-turn
   (do! "examine mailbox")
-  (is (= 0 @z/turns)))
+  (is (= 1 @z/turns)))
 
-(deftest inventory-costs-no-turn
+(deftest inventory-costs-a-turn
   (do! "inventory")
-  (is (= 0 @z/turns)))
+  (is (= 1 @z/turns)))
+
+(deftest diagnose-costs-a-turn
+  (do! "diagnose")
+  (is (= 1 @z/turns)))
+
+;;; ---------------------------------------------------------------------------
+;;; Meta-verbs and unknown words do NOT cost a turn
+;;; ---------------------------------------------------------------------------
 
 (deftest score-costs-no-turn
   (do! "score")
   (is (= 0 @z/turns)))
 
-(deftest diagnose-costs-no-turn
-  (do! "diagnose")
-  (is (= 0 @z/turns)))
-
 (deftest unknown-command-costs-no-turn
-  (do! "xyzzy")
+  ;; "I don't know the word "qwxzt"." — original: 0 moves. (Was "xyzzy", but
+  ;; xyzzy is a real Zork word — the original answers it and charges a move.)
+  (do! "qwxzt")
   (is (= 0 @z/turns)))
 
 ;;; ---------------------------------------------------------------------------
@@ -183,9 +241,10 @@
     (is (= "It is securely anchored." (clojure.string/trim (str sw))))))
 
 (deftest again-replaying-turn-costing-command-costs-a-turn
+  ;; again replays wait at wait's cost — original: 3 + 3 = 6 moves
   (do! "wait")
   (do! "again")
-  (is (= 2 @z/turns)))
+  (is (= 6 @z/turns)))
 
 (deftest again-replaying-north-costs-a-turn
   (do! "north")
